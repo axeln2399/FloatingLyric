@@ -14,8 +14,9 @@ public struct LyricView: View {
                 .frame(maxWidth: .infinity, minHeight: 90, alignment: .leading)
             footer
         }
-        .padding(16)
-        .frame(minWidth: 360, minHeight: 180)
+        // Extra headroom so the traffic-light buttons never sit on the text.
+        .padding(EdgeInsets(top: 30, leading: 16, bottom: 16, trailing: 16))
+        .frame(minWidth: 360, minHeight: 190)
     }
 
     private var header: some View {

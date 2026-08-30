@@ -21,6 +21,8 @@ public final class MenuBarController {
         let menu = NSMenu()
 
         menu.addItem(item("Show / Hide Lyrics", #selector(toggleLyrics), key: "l"))
+        menu.addItem(item("Minimize Window", #selector(minimizeLyrics), key: "m"))
+        menu.addItem(item("Close Window", #selector(closeLyrics), key: "w"))
         menu.addItem(check("Lock Position", #selector(toggleLock), on: Defaults.lockPosition))
         menu.addItem(check("Click Through", #selector(toggleClickThrough), on: Defaults.clickThrough))
         menu.addItem(.separator())
@@ -97,6 +99,8 @@ public final class MenuBarController {
     // MARK: - Actions
 
     @objc private func toggleLyrics() { coordinator.togglePanel() }
+    @objc private func minimizeLyrics() { coordinator.minimizePanel() }
+    @objc private func closeLyrics() { coordinator.closePanel() }
 
     @objc private func toggleLock(_ sender: NSMenuItem) {
         Defaults.lockPosition.toggle()

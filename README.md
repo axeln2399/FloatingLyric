@@ -130,11 +130,35 @@ Your refresh token is stored in the **macOS Keychain**. The Client ID sits in
 - The floating window shows the current line bright and its neighbours dimmed.
 - Drag it anywhere. It stays above other apps and follows you across Spaces.
 
+### Window controls
+
+The window has the standard macOS **traffic lights** in its top-left corner —
+the same red and yellow buttons as any Mac window. There is no title bar; the
+buttons sit directly over the blurred background.
+
+| Button | What it does |
+|---|---|
+| 🔴 **Red — close** | Closes the window. **The app keeps running** in the menu bar — it does not quit. Reopen with ♪ → Show / Hide Lyrics (⌘L). |
+| 🟡 **Yellow — minimize** | Sends the window to the Dock. Click its Dock thumbnail, or ♪ → Show / Hide Lyrics, to bring it back. |
+| ⚪ **Zoom** | Hidden — the lyric window is a fixed size, so there is nothing to zoom. |
+
+The same actions are in the menu bar as **Minimize Window** (⌘M) and
+**Close Window** (⌘W), so you can reach them even when the window is
+click-through or off-screen.
+
+To actually quit the app, use ♪ → **Quit FloatingLyric** (⌘Q).
+
+> With **Click Through** on, the traffic lights are hidden rather than left as
+> dead buttons you can't click. Use the menu bar items instead, or turn Click
+> Through off to get them back.
+
 Menu bar icon (**♪**):
 
 | Item | What it does |
 |---|---|
 | **Show / Hide Lyrics** (⌘L) | Toggle the floating window |
+| **Minimize Window** (⌘M) | Send it to the Dock |
+| **Close Window** (⌘W) | Close it — the app keeps running |
 | **Lock Position** | Stop accidental dragging |
 | **Click Through** | Window becomes purely visual; clicks pass through to whatever is behind it |
 | **Font Size** | Small (14) / Medium (18) / Large (24) |
@@ -273,7 +297,7 @@ and work offline.
 ## Build from source
 
 ```bash
-swift test     # 82 tests, all offline
+swift test     # 94 tests, all offline
 ./build.sh     # → dist/FloatingLyric.app and dist/FloatingLyric.dmg
 ```
 
@@ -293,6 +317,9 @@ No third-party dependencies — Apple frameworks only.
 | "Port 8888–8890 in use" | Quit whatever holds those ports, then log in again |
 | Nothing appears on screen | The window may be at 15% opacity — ♪ → Opacity → 60% |
 | Can't find the window at all | ♪ → Show / Hide Lyrics twice; it re-centres if its saved position is off-screen |
+| Closed the window by accident | ♪ → Show / Hide Lyrics (⌘L). Closing never quits the app. |
+| Minimized it and can't get it back | Click its thumbnail in the Dock, or ♪ → Show / Hide Lyrics |
+| No traffic light buttons visible | **Click Through** is on — turn it off in the menu bar |
 | Highlight runs early or late | Adjust **Sync offset** in the menu bar |
 | "Session expired" | ♪ → **Log Out**, then log in again |
 | `no such module 'XCTest'` when building | `export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`, or permanently: `sudo xcode-select -s /Applications/Xcode.app` |

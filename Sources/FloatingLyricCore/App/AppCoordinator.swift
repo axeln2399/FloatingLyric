@@ -13,7 +13,7 @@ public final class AppCoordinator {
     private var auth: SpotifyAuth?
     private var poller: NowPlayingPoller?
     private var lyricsProvider: LyricsProvider?
-    private var panel: FloatingPanel?
+    private var window: FloatingWindow?
     private var setupWindow: SetupWindow?
     private var tickTimer: Timer?
     private var currentTrackID: String?
@@ -22,14 +22,14 @@ public final class AppCoordinator {
     public init() {}
 
     public func start() {
-        let panel = FloatingPanel(viewModel: viewModel)
-        panel.orderFrontRegardless()
-        self.panel = panel
+        let window = FloatingWindow(viewModel: viewModel)
+        window.orderFrontRegardless()
+        self.window = window
 
         NotificationCenter.default.addObserver(
-            forName: NSWindow.didMoveNotification, object: panel, queue: .main
+            forName: NSWindow.didMoveNotification, object: window, queue: .main
         ) { _ in
-            MainActor.assumeIsolated { panel.saveFrame() }
+            MainActor.assumeIsolated { window.saveFrame() }
         }
 
         lyricsProvider = LyricsProvider(http: http, cache: cache)
@@ -125,12 +125,26 @@ public final class AppCoordinator {
     }
 
     public func togglePanel() {
-        guard let panel else { return }
-        panel.isVisible ? panel.orderOut(nil) : panel.orderFrontRegardless()
+        guard let window else { return }
+        switch PanelToggle.action(isMiniaturized: window.isMiniaturized,
+                                  isVisible: window.isVisible) {
+        case .restore: window.deminiaturize(nil)
+        case .hide:    window.orderOut(nil)
+        case .show:    window.orderFrontRegardless()
+        }
+    }
+
+    public func minimizePanel() {
+        guard let window, window.isVisible, !window.isMiniaturized else { return }
+        window.miniaturize(nil)
+    }
+
+    public func closePanel() {
+        window?.close()
     }
 
     public func applyPanelPreferences() {
-        panel?.applyPreferences()
+        window?.applyPreferences()
         viewModel.fontSize = Defaults.fontSize
     }
 
