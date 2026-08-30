@@ -27,12 +27,6 @@ public final class AppCoordinator {
         window.orderFrontRegardless()
         self.window = window
 
-        NotificationCenter.default.addObserver(
-            forName: NSWindow.didMoveNotification, object: window, queue: .main
-        ) { _ in
-            MainActor.assumeIsolated { window.saveFrame() }
-        }
-
         viewModel.onPlayPause = { [weak self] in self?.togglePlayPause() }
         viewModel.onNext = { [weak self] in self?.skip(.next) }
         viewModel.onPrevious = { [weak self] in self?.skip(.previous) }

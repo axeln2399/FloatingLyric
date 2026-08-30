@@ -11,12 +11,15 @@ public struct LyricView: View {
         VStack(alignment: .leading, spacing: 10) {
             header
             content
-                .frame(maxWidth: .infinity, minHeight: 90, alignment: .leading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             footer
         }
         // Extra headroom so the traffic-light buttons never sit on the text.
         .padding(EdgeInsets(top: 30, leading: 16, bottom: 16, trailing: 16))
-        .frame(minWidth: 360, minHeight: 190)
+        // Matches the window's own minimum; the window is resizable from here
+        // up, and a wider one is what stops long lines from wrapping.
+        .frame(minWidth: FloatingWindow.minimumSize.width,
+               minHeight: FloatingWindow.minimumSize.height)
         // Hover is decided by the window (see `FloatingWindow.isPointerInside`),
         // not by SwiftUI: this window usually belongs to an inactive app.
         .contentShape(Rectangle())
@@ -56,6 +59,7 @@ public struct LyricView: View {
             Text(text)
                 .font(.system(size: CGFloat(model.fontSize), weight: .medium))
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         case .plain(let text):
             ScrollView {
                 Text(text)
@@ -70,29 +74,48 @@ public struct LyricView: View {
     private func syncedLines(document: LyricsDocument, currentIndex: Int?) -> some View {
         let center = currentIndex ?? -1
         let window = Array((center - 1)...(center + 2))
-        return VStack(alignment: .leading, spacing: 6) {
-            ForEach(window, id: \.self) { index in
-                if document.lines.indices.contains(index) {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(document.lines[index].text)
-                            .font(.system(size: CGFloat(model.fontSize),
-                                          weight: index == center ? .bold : .regular))
-                            .foregroundStyle(index == center ? AnyShapeStyle(.primary)
-                                                             : AnyShapeStyle(.tertiary))
-                            .lineLimit(2)
-                        if model.showRomaji, let romaji = document.romanization(at: index) {
-                            Text(romaji)
-                                .font(.system(size: max(9, CGFloat(model.fontSize) - 6)))
-                                .foregroundStyle(index == center ? AnyShapeStyle(.secondary)
-                                                                 : AnyShapeStyle(.quaternary))
-                                .lineLimit(1)
+        // Lines wrap rather than truncate, so four of them can outgrow a short
+        // window. Scrolling keeps the overflow reachable, and the current line
+        // is scrolled back into view whenever it changes.
+        return ScrollViewReader { proxy in
+            ScrollView(.vertical) {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(window, id: \.self) { index in
+                        if document.lines.indices.contains(index) {
+                            line(document: document, index: index, isCurrent: index == center)
+                                .id(index)
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .scrollIndicators(.hidden)
+            .onChange(of: currentIndex) { _, _ in
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    proxy.scrollTo(center, anchor: .center)
                 }
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: currentIndex)
+    }
+
+    private func line(document: LyricsDocument, index: Int, isCurrent: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(document.lines[index].text)
+                .font(.system(size: CGFloat(model.fontSize),
+                              weight: isCurrent ? .bold : .regular))
+                .foregroundStyle(isCurrent ? AnyShapeStyle(.primary)
+                                           : AnyShapeStyle(.tertiary))
+            if model.showRomaji, let romaji = document.romanization(at: index) {
+                Text(romaji)
+                    .font(.system(size: max(9, CGFloat(model.fontSize) - 6)))
+                    .foregroundStyle(isCurrent ? AnyShapeStyle(.secondary)
+                                               : AnyShapeStyle(.quaternary))
+            }
+        }
+        // No line limit anywhere above: a long line wraps onto as many lines as
+        // it needs, and fixedSize stops SwiftUI compressing it back to one.
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var footer: some View {

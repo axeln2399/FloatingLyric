@@ -10,9 +10,12 @@ import SwiftUI
 /// re-checked minimize by hand in the running app.
 @MainActor
 public final class FloatingWindow: NSWindow, NSWindowDelegate {
+    public static let minimumSize = NSSize(width: 280, height: 150)
+
     public init(viewModel: LyricViewModel) {
         super.init(contentRect: NSRect(x: 0, y: 0, width: 420, height: 210),
-                   styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+                   styleMask: [.titled, .closable, .miniaturizable, .resizable,
+                               .fullSizeContentView],
                    backing: .buffered,
                    defer: false)
 
@@ -21,7 +24,14 @@ public final class FloatingWindow: NSWindow, NSWindowDelegate {
         titlebarAppearsTransparent = true
         titleVisibility = .hidden
         title = "FloatingLyric"
+        // Resizing is by dragging an edge or corner. The green button is still
+        // hidden: on a window pinned above everything else, zoom and full
+        // screen are not behaviours anyone wants from a lyric overlay.
         standardWindowButton(.zoomButton)?.isHidden = true
+
+        // Small enough to be a one-line strip, with no upper bound — a wide
+        // window is how you stop long lines from wrapping.
+        minSize = Self.minimumSize
 
         level = .floating
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -104,7 +114,8 @@ public final class FloatingWindow: NSWindow, NSWindowDelegate {
         let frame = NSRectFromString(saved)
         // A saved frame can point at a display that is no longer attached.
         let visible = NSScreen.screens.contains { $0.visibleFrame.intersects(frame) }
-        if visible, frame.width > 100, frame.height > 60 {
+        if visible, frame.width >= Self.minimumSize.width,
+           frame.height >= Self.minimumSize.height {
             setFrame(frame, display: false)
         } else {
             center()
@@ -117,6 +128,14 @@ public final class FloatingWindow: NSWindow, NSWindowDelegate {
     }
 
     // MARK: - NSWindowDelegate
+
+    public func windowDidMove(_ notification: Notification) {
+        saveFrame()
+    }
+
+    public func windowDidResize(_ notification: Notification) {
+        saveFrame()
+    }
 
     public func windowWillMiniaturize(_ notification: Notification) {
         // A window at `.floating` level does not reliably animate into the Dock.

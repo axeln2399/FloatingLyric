@@ -107,7 +107,33 @@ final class FloatingWindowTests: XCTestCase {
         XCTAssertFalse(window.isPointerInside)
     }
 
+    func test_theWindowCanBeResized() {
+        let window = makeWindow()
+        XCTAssertTrue(window.styleMask.contains(.resizable))
+        XCTAssertEqual(window.minSize, FloatingWindow.minimumSize)
+        XCTAssertEqual(window.standardWindowButton(.zoomButton)?.isHidden, true,
+                       "resizing is by edge drag; zoom stays off for an overlay")
+    }
+
+    func test_resizingIsRemembered() {
+        Defaults.panelFrame = nil
+        let window = makeWindow()
+        let resized = NSRect(x: 120, y: 140, width: 640, height: 400)
+        window.setFrame(resized, display: false)
+        window.windowDidResize(Notification(name: NSWindow.didResizeNotification))
+
+        XCTAssertEqual(Defaults.panelFrame.map(NSRectFromString), resized)
+    }
+
+    func test_aSavedFrameSmallerThanTheMinimumIsIgnored() {
+        Defaults.panelFrame = NSStringFromRect(NSRect(x: 0, y: 0, width: 40, height: 20))
+        let window = makeWindow()
+        XCTAssertGreaterThanOrEqual(window.frame.width, FloatingWindow.minimumSize.width)
+        XCTAssertGreaterThanOrEqual(window.frame.height, FloatingWindow.minimumSize.height)
+    }
+
     override func tearDown() {
+        Defaults.panelFrame = nil
         Defaults.clickThrough = false
         Defaults.opacityPercent = PanelOpacity.defaultPercent
         super.tearDown()

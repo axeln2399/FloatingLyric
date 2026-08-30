@@ -140,6 +140,8 @@ Your refresh token is stored in the **macOS Keychain**. The Client ID sits in
 
 - The floating window shows the current line bright and its neighbours dimmed.
 - Drag it anywhere. It stays above other apps and follows you across Spaces.
+- Resize it by dragging any edge or corner. Its size is remembered, like its
+  position.
 
 ### Window controls
 
@@ -151,13 +153,30 @@ buttons sit directly over the blurred background.
 |---|---|
 | 🔴 **Red — close** | Closes the window. **The app keeps running** in the menu bar — it does not quit. Reopen with ♪ → Show / Hide Lyrics (⌘L). |
 | 🟡 **Yellow — minimize** | Sends the window to the Dock. Click its Dock thumbnail, or ♪ → Show / Hide Lyrics, to bring it back. |
-| ⚪ **Zoom** | Hidden — the lyric window is a fixed size, so there is nothing to zoom. |
+| ⚪ **Zoom** | Hidden on purpose. Zoom and full screen make no sense for a window that floats over your work — resize it by dragging an edge instead. |
 
 The same actions are in the menu bar as **Minimize Window** (⌘M) and
 **Close Window** (⌘W), so you can reach them even when the window is
 click-through or off-screen.
 
 To actually quit the app, use ♪ → **Quit FloatingLyric** (⌘Q).
+
+### Resizing, and long lines
+
+Drag any edge or corner. The window will not go below **280 × 150** — small
+enough to be a thin strip of one line — and has no upper limit.
+
+Lyric lines are never cut off: a line longer than the window **wraps onto as
+many lines as it needs**, and its romaji wraps with it. Two ways to deal with a
+song full of long lines:
+
+- **Make the window wider** — the usual fix, and now the whole point of being
+  able to resize it.
+- **Make it taller** — if four wrapped lines don't fit, the lyric area scrolls,
+  and the current line is scrolled back into view every time it changes. You can
+  also scroll it by hand to read ahead.
+
+A smaller **Font Size** (♪ → Font Size → Small) fits more per line too.
 
 > With **Click Through** on, the traffic lights are hidden rather than left as
 > dead buttons you can't click. Use the menu bar items instead, or turn Click
