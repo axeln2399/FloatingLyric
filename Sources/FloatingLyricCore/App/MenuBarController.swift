@@ -4,6 +4,7 @@ import AppKit
 public final class MenuBarController {
     private let statusItem: NSStatusItem
     private let coordinator: AppCoordinator
+    private var opacityMenuRef: NSMenu?
     private let offsetSlider = NSSlider(value: Double(Defaults.syncOffsetMs),
                                         minValue: -2000, maxValue: 2000,
                                         target: nil, action: nil)
@@ -34,6 +35,20 @@ public final class MenuBarController {
         let fontItem = NSMenuItem(title: "Font Size", action: nil, keyEquivalent: "")
         fontItem.submenu = fontMenu
         menu.addItem(fontItem)
+
+        let opacityMenu = NSMenu()
+        for percent in PanelOpacity.steps {
+            let entry = item("\(percent)%", #selector(setOpacity(_:)))
+            entry.tag = percent
+            entry.state = Defaults.opacityPercent == percent ? .on : .off
+            opacityMenu.addItem(entry)
+        }
+        opacityMenu.addItem(.separator())
+        opacityMenu.addItem(item("Cycle", #selector(cycleOpacity), key: "t"))
+        let opacityItem = NSMenuItem(title: "Opacity", action: nil, keyEquivalent: "")
+        opacityItem.submenu = opacityMenu
+        opacityMenuRef = opacityMenu
+        menu.addItem(opacityItem)
 
         menu.addItem(sliderItem())
         menu.addItem(.separator())
@@ -98,6 +113,21 @@ public final class MenuBarController {
     @objc private func setFontSize(_ sender: NSMenuItem) {
         Defaults.fontSize = sender.tag
         sender.menu?.items.forEach { $0.state = $0.tag == sender.tag ? .on : .off }
+        coordinator.applyPanelPreferences()
+    }
+
+    @objc private func setOpacity(_ sender: NSMenuItem) {
+        applyOpacity(sender.tag)
+    }
+
+    @objc private func cycleOpacity() {
+        applyOpacity(PanelOpacity.next(after: Defaults.opacityPercent))
+    }
+
+    private func applyOpacity(_ percent: Int) {
+        Defaults.opacityPercent = percent
+        let selected = Defaults.opacityPercent
+        opacityMenuRef?.items.forEach { $0.state = $0.tag == selected ? .on : .off }
         coordinator.applyPanelPreferences()
     }
 

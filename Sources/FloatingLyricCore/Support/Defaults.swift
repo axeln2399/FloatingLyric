@@ -23,6 +23,13 @@ public enum Defaults {
         set { d.set(newValue, forKey: "fontSize") }
     }
 
+    /// Always one of `PanelOpacity.steps`, whatever is on disk.
+    public static var opacityPercent: Int {
+        get { PanelOpacity.nearest(d.object(forKey: "opacityPercent") as? Int
+                                   ?? PanelOpacity.defaultPercent) }
+        set { d.set(PanelOpacity.nearest(newValue), forKey: "opacityPercent") }
+    }
+
     public static var clickThrough: Bool {
         get { d.bool(forKey: "clickThrough") }
         set { d.set(newValue, forKey: "clickThrough") }

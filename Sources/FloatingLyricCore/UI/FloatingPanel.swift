@@ -44,6 +44,7 @@ public final class FloatingPanel: NSPanel {
     public func applyPreferences() {
         ignoresMouseEvents = Defaults.clickThrough
         isMovableByWindowBackground = !Defaults.lockPosition && !Defaults.clickThrough
+        alphaValue = PanelOpacity.alpha(forPercent: Defaults.opacityPercent)
     }
 
     public func restoreFrame() {
