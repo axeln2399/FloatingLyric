@@ -5,12 +5,12 @@ import SwiftUI
 public final class SetupWindow: NSWindowController {
     public let prompt: LoginPrompt
 
-    public init(prompt: LoginPrompt = .firstRun, onSave: @escaping (String) -> Void) {
+    public init(prompt: LoginPrompt = .welcome, onSave: @escaping (String) -> Void) {
         self.prompt = prompt
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 400),
                               styleMask: [.titled, .closable],
                               backing: .buffered, defer: false)
-        window.title = prompt == .firstRun ? "Set up FloatingLyric" : "Log in to Spotify"
+        window.title = prompt == .setup ? "Set up FloatingLyric" : "Log in to Spotify"
         window.center()
         super.init(window: window)
 
@@ -48,7 +48,7 @@ private struct SetupView: View {
     init(prompt: LoginPrompt, initialClientID: String, onSave: @escaping (String) -> Void) {
         self.prompt = prompt
         _clientID = State(initialValue: initialClientID)
-        _isEditingClientID = State(initialValue: prompt == .firstRun)
+        _isEditingClientID = State(initialValue: prompt == .setup)
         self.onSave = onSave
     }
 
@@ -58,15 +58,27 @@ private struct SetupView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            if prompt == .firstRun {
+            switch prompt {
+            case .setup:
                 Text("Connect your Spotify account").font(.title2.bold())
                 walkthrough
-            } else {
+            case .welcome:
+                Text("Welcome to FloatingLyric").font(.title2.bold())
+                Text("""
+                     Log in with your Spotify account and lyrics will follow \
+                     whatever you play — on this Mac, your phone, or a speaker. \
+                     Spotify's own login page opens over the app; your password \
+                     never passes through FloatingLyric.
+                     """)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            case .logIn:
                 Text("You're logged out").font(.title2.bold())
                 Text("""
-                     Log in again to start following what you're playing. Your \
-                     browser will open Spotify's page once — click Agree, and \
-                     you can close the tab.
+                     Log in again to start following what you're playing. \
+                     Spotify's login page opens over the app — sign in and \
+                     click Agree.
                      """)
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -87,7 +99,7 @@ private struct SetupView: View {
                 Link("Open Spotify Dashboard",
                      destination: URL(string: "https://developer.spotify.com/dashboard")!)
                 Spacer()
-                Button(prompt == .firstRun ? "Save and Log In" : "Log In with Spotify") {
+                Button(prompt == .setup ? "Save and Log In" : "Log In with Spotify") {
                     onSave(trimmedClientID)
                 }
                 .keyboardShortcut(.defaultAction)

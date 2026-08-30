@@ -61,23 +61,63 @@ automatically. Follow the next section.
 
 ---
 
-## How to connect your Spotify account
+## Logging in
 
-FloatingLyric talks to Spotify through **your own** Spotify developer app, so no
-credentials are shared with anyone — not with me, not with a server. Everything
-stays on your Mac.
+Open FloatingLyric and click **Log In with Spotify**. Spotify's own login page
+appears over the app — sign in with your Spotify username and password (or the
+Google / Apple / Facebook buttons), click **Agree**, and the window closes
+itself.
 
-You need this once. It takes about two minutes.
+That's the whole setup. **No developer dashboard, no Client ID to paste** —
+FloatingLyric ships with its own Spotify app registration.
 
-### 1. Log in to the Spotify dashboard
+> Your password goes to Spotify's page, never through FloatingLyric. The app
+> only ever receives an access token. That's what OAuth is for, and it's why
+> Spotify offers no way for an app to take your password directly.
+
+The login window shares Safari's cookies, so if you're already signed in to
+Spotify there, it's usually one **Agree** click with no password at all.
+
+A **free Spotify account is enough to see lyrics.** The ⏮ ⏯ ⏭ buttons need
+Premium — Spotify's rule for every app that controls playback, not this one's.
+
+### Sending it to a friend
+
+Here's the catch, and it's Spotify's, not the app's.
+
+A Spotify app registration starts in **Development Mode**, which admits **at
+most 25 users, each added by hand**. Anyone not on that list is turned away at
+Spotify's login page with *"app not registered"* — no matter that the app works
+perfectly for you.
+
+So before your friend can log in, add them:
+
+1. <https://developer.spotify.com/dashboard> → your app → **Settings** →
+   **User Management**.
+2. Add their **full name** and the **email address on their Spotify account**.
+   It must be the Spotify one, not whichever email they usually give you.
+3. Save. They can log in from that moment.
+
+Removing the 25-user cap means applying to Spotify for **Extended Quota Mode**,
+which they review by hand and rarely grant to personal projects. Assume the cap
+is permanent and you'll be planning honestly.
+
+If you'd rather not manage a list, tell your friend to use their own Client ID
+instead — the next section.
+
+### Using your own Client ID
+
+Optional. You'd want this if you'd rather not appear on someone else's app
+registration, or you've run out of the 25 slots above.
+
+Menu bar **♪ → Use My Own Client ID…** opens the walkthrough. In short:
+
+#### 1. Log in to the Spotify dashboard
 
 Go to **<https://developer.spotify.com/dashboard>** and log in with the same
-Spotify account you actually listen on. A **free account is enough to see
-lyrics** — reading what's playing costs nothing. The **⏮ ⏯ ⏭ buttons need
-Spotify Premium**, which is Spotify's rule for every app that controls playback,
-not this one's.
+Spotify account you actually listen on.
 
-### 2. Create an app
+#### 2. Create an app
 
 Click **Create app**. Fill in:
 
@@ -105,7 +145,7 @@ http://127.0.0.1:8888/callback
 
 Accept the terms and click **Save**.
 
-### 3. Copy your Client ID
+#### 3. Copy your Client ID
 
 On the app's page, open **Settings**. You'll see **Client ID** — a long string
 of letters and numbers. Copy it.
@@ -113,33 +153,25 @@ of letters and numbers. Copy it.
 You do **not** need the Client Secret. FloatingLyric uses OAuth PKCE, which is
 designed for apps that can't keep a secret safe. Leave the secret hidden.
 
-### 4. Paste it into FloatingLyric
+#### 4. Paste it into FloatingLyric
 
-In FloatingLyric's setup window, paste the Client ID and click
-**Save and Log In**. **Spotify's own login page opens in a window over the
-app** — sign in with your Spotify username and password (or the Google / Apple
-/ Facebook buttons), then click **Agree**. The window closes itself.
-
-Your password goes to Spotify's page, never through FloatingLyric. The app only
-ever receives an access token, which is what OAuth is for.
-
-That window shares Safari's cookies, so if you're already signed in to Spotify
-in Safari it's usually just one **Agree** click with no password at all.
-
-That's it. Play something on Spotify — on any device — and lyrics appear.
+Paste it into the field and click **Save and Log In**. Clear the field to go
+back to the built-in registration.
 
 ### Logging in and out
 
 The login window opens by itself whenever there is no session to work with —
 the first time you run the app, and again after **Log Out**. It has two faces:
 
-- **First run:** the full walkthrough above, ending in the Client ID field.
-- **Logged out:** just a **Log In with Spotify** button. Your Client ID is
-  already saved and doesn't change, so there is nothing to re-enter — though
-  **Use a different Client ID…** is there if you want to point the app at
-  another Spotify app.
+- **First run:** a welcome and a single **Log In with Spotify** button.
+- **Logged out:** the same button, worded for someone coming back.
+- **No Client ID at all** (only if the built-in one is ever removed): the full
+  developer walkthrough.
 
-Menu bar **♪ → Spotify Setup…** opens the same window at any time.
+**Use a different Client ID…** on either of the first two reveals the field, if
+you want to point the app at your own Spotify app registration.
+
+Menu bar **♪ → Use My Own Client ID…** opens the walkthrough at any time.
 
 ### What the app can and cannot do with your account
 
@@ -154,8 +186,7 @@ It **cannot** read your playlists, see your library, or change anything about
 your account.
 
 > Connected before playback control existed? Your saved login only carries the
-> first scope. **♪ → Log Out**, then **♪ → Spotify Setup…** and log in again to
-> pick up the second one.
+> first scope. **♪ → Log Out**, then log in again to pick up the second one.
 
 Your refresh token is stored in the **macOS Keychain**. The Client ID sits in
 `UserDefaults`. Nothing is ever sent anywhere except Spotify's API and LRCLIB.
@@ -226,7 +257,7 @@ Menu bar icon (**♪**):
 | **Sync offset** | Nudge ±2000 ms if the highlight runs early or late |
 | **Romaji Under Lyrics** | Print a Latin reading under non-Latin lines |
 | **Auto-Hide Controls** | Fade everything but the lyrics after 3 idle seconds |
-| **Spotify Setup…** | Re-enter the Client ID |
+| **Use My Own Client ID…** | Point the app at your own Spotify app registration |
 | **Log Out** | Disconnect the Spotify account |
 | **Quit** (⌘Q) | Exit |
 
@@ -268,7 +299,7 @@ Two things Spotify requires for these:
 
 If you connected your account before playback control existed, your saved login
 predates the permission it needs. The panel says *"Log out and back in to enable
-playback controls"* — do exactly that (♪ → Log Out, then ♪ → Spotify Setup…).
+playback controls"* — do exactly that (♪ → Log Out, then log back in).
 
 ### Romaji under non-Latin lyrics
 

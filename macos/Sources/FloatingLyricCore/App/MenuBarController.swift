@@ -69,7 +69,7 @@ public final class MenuBarController: NSObject, NSMenuDelegate {
         menu.addItem(check("Romaji Under Lyrics", #selector(toggleRomaji), on: Defaults.showRomaji))
         menu.addItem(check("Auto-Hide Controls", #selector(toggleAutoHide), on: Defaults.autoHideChrome))
         menu.addItem(.separator())
-        menu.addItem(item("Spotify Setup…", #selector(openSetup)))
+        menu.addItem(item("Use My Own Client ID…", #selector(openSetup)))
         menu.addItem(item("Log Out", #selector(logOut)))
         menu.addItem(.separator())
         menu.addItem(item("Quit FloatingLyric", #selector(quit), key: "q"))
@@ -203,7 +203,9 @@ public final class MenuBarController: NSObject, NSMenuDelegate {
         offsetLabelField?.stringValue = offsetText()
     }
 
-    @objc private func openSetup() { coordinator.showSetup() }
+    /// Always the walkthrough: someone who reaches for "Spotify Setup…" wants
+    /// the Client ID field, not the one-button login they already have.
+    @objc private func openSetup() { coordinator.showSetup(.setup) }
     @objc private func logOut() { coordinator.logOut() }
     @objc private func quit() { NSApp.terminate(nil) }
 }

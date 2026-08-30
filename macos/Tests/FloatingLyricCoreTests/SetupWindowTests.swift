@@ -4,10 +4,16 @@ import AppKit
 
 @MainActor
 final class SetupWindowTests: XCTestCase {
-    func test_aFirstRunIsTitledAsSetup() {
-        let window = SetupWindow(prompt: .firstRun) { _ in }
-        XCTAssertEqual(window.prompt, .firstRun)
+    func test_theWalkthroughIsTitledAsSetup() {
+        let window = SetupWindow(prompt: .setup) { _ in }
+        XCTAssertEqual(window.prompt, .setup)
         XCTAssertEqual(window.window?.title, "Set up FloatingLyric")
+    }
+
+    func test_aFirstRunIsTitledAsLoginNotSetup() {
+        let window = SetupWindow(prompt: .welcome) { _ in }
+        XCTAssertEqual(window.window?.title, "Log in to Spotify",
+                       "a new user should never meet the developer walkthrough")
     }
 
     func test_loggingBackInIsTitledAsLogin() {
@@ -16,8 +22,8 @@ final class SetupWindowTests: XCTestCase {
         XCTAssertEqual(window.window?.title, "Log in to Spotify")
     }
 
-    func test_itDefaultsToTheWalkthrough() {
-        XCTAssertEqual(SetupWindow { _ in }.prompt, .firstRun)
+    func test_itDefaultsToTheOneClickWelcome() {
+        XCTAssertEqual(SetupWindow { _ in }.prompt, .welcome)
     }
 
     func test_closingReturnsTheAppToTheMenuBar() {

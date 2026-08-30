@@ -50,7 +50,7 @@ public final class AppCoordinator {
 
         guard let clientID = Defaults.clientID else {
             viewModel.apply(state: .failed(.notConfigured))
-            showSetup(.firstRun)
+            showSetup(.setup)
             return
         }
 
@@ -61,9 +61,13 @@ public final class AppCoordinator {
             // Nothing can be shown without a session, so ask for one rather
             // than leaving a dead panel on screen.
             viewModel.apply(state: .failed(.notLoggedIn))
-            showSetup(.logIn)
+            showSetup(Defaults.hasSignedInBefore ? .logIn : .welcome)
             return
         }
+
+        // Reaching here means a working session, which is what separates
+        // "welcome" from "you're logged out" on the next launch.
+        Defaults.hasSignedInBefore = true
 
         playback = PlaybackController(auth: auth, http: http)
         viewModel.canControl = true
@@ -76,14 +80,16 @@ public final class AppCoordinator {
     }
 
     public func reconfigure(clientID: String) {
-        Defaults.clientID = clientID
+        // Only record it when it differs from what shipped, so clearing the
+        // field falls back to the built-in app rather than to nothing.
+        Defaults.clientIDOverride = clientID == AppCredentials.builtInClientID ? nil : clientID
         auth = SpotifyAuth(clientID: clientID, http: http, store: store)
         logIn()
     }
 
     public func logIn() {
         guard let auth else {
-            showSetup(.firstRun)
+            showSetup(.setup)
             return
         }
         Task { @MainActor in
@@ -171,9 +177,10 @@ public final class AppCoordinator {
     /// Shows the login window. Without an argument it works out which face to
     /// show from what is actually stored.
     public func showSetup(_ prompt: LoginPrompt? = nil) {
-        let prompt = prompt ?? LoginPrompt.required(clientID: Defaults.clientID,
-                                                    isLoggedIn: auth?.isLoggedIn ?? false)
-                             ?? .firstRun
+        let prompt = prompt ?? LoginPrompt.required(
+            clientID: Defaults.clientID,
+            isLoggedIn: auth?.isLoggedIn ?? false,
+            hasSignedInBefore: Defaults.hasSignedInBefore) ?? .logIn
 
         // Re-showing while it is already up would stack a second window
         // behind the first.

@@ -3,9 +3,24 @@ import Foundation
 public enum Defaults {
     private static let d = UserDefaults.standard
 
-    public static var clientID: String? {
+    /// A Client ID the user entered by hand, replacing the built-in one.
+    /// Almost nobody sets this — it exists for people who would rather run
+    /// against their own Spotify app.
+    public static var clientIDOverride: String? {
         get { d.string(forKey: "clientID")?.trimmingCharacters(in: .whitespaces).nilIfEmpty }
-        set { d.set(newValue, forKey: "clientID") }
+        set { d.set(newValue?.trimmingCharacters(in: .whitespaces).nilIfEmpty, forKey: "clientID") }
+    }
+
+    /// The Client ID to actually authenticate with.
+    public static var clientID: String? {
+        clientIDOverride ?? AppCredentials.builtInClientID.nilIfEmpty
+    }
+
+    /// Whether a Spotify session has ever been established on this Mac, which
+    /// is the difference between "welcome" and "you're logged out".
+    public static var hasSignedInBefore: Bool {
+        get { d.bool(forKey: "hasSignedInBefore") }
+        set { d.set(newValue, forKey: "hasSignedInBefore") }
     }
 
     public static var syncOffsetMs: Int {

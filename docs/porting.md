@@ -70,7 +70,24 @@ Spotify dashboard character for character, so whichever scheme a platform uses
 must be listed in the setup instructions you give the user.
 
 Store the **refresh token** in the platform's secure store, never in plain
-preferences. The client ID is not a secret and lives in ordinary settings.
+preferences.
+
+**Ship a built-in Client ID.** Under PKCE it is not a secret — the proof of
+identity is a verifier generated per login — so bake it into the build and let
+users simply log in. Sending someone to a developer dashboard before their
+first lyric is the single biggest thing that makes a port feel unfinished.
+
+Two consequences to plan for, both Spotify's:
+
+- A registration starts in **Development Mode: 25 users, added by hand** in the
+  dashboard by full name and Spotify account email. Everyone else is refused at
+  the login page. Lifting it means applying for Extended Quota Mode, which is
+  reviewed by hand and rarely granted to personal projects.
+- Your app's name appears on every user's consent screen, and everyone shares
+  its rate limit.
+
+Keep a hidden "use my own Client ID" escape hatch for the people who'd rather
+run against their own registration.
 
 Verify `state` on the callback and reject a mismatch — that's CSRF protection,
 not decoration.
