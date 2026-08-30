@@ -287,6 +287,45 @@ screen permanently.
 
 ---
 
+## Stopping the Keychain prompt (free)
+
+Sooner or later you'll see:
+
+> **"FloatingLyric wants to use your confidential information stored in
+> com.floatinglyric.tokens in your keychain."**
+
+That is macOS asking whether this program may read **its own** Spotify refresh
+token. Nothing is wrong — but it comes back every time you rebuild after
+changing code, and here is why.
+
+The Keychain identifies a program by its code signature. An ad-hoc signed build
+has no certificate behind it, so there is no stable identity to record, and
+macOS falls back to the exact hash of the code. Rebuilding unchanged source
+gives the same hash and stays quiet; change one line and the hash changes, at
+which point macOS sees a program it has never met asking for your token.
+
+**"Always Allow" is safe** — it adds that build to the item's list. It just
+doesn't survive your next code change.
+
+The permanent, free fix is to give every build the same identity with a
+self-signed certificate:
+
+```
+./make-signing-cert.sh    # once — asks for your login password
+./build.sh                # picks the certificate up automatically
+```
+
+Approve the Keychain prompt one last time (and "Always Allow" the signing key
+if the build asks), and neither prompt returns, however much the code changes.
+
+This is **not** an Apple Developer ID. It stops the Keychain asking on *this*
+Mac. It does nothing for Gatekeeper on anyone else's — for that, read on.
+
+To go back to ad-hoc builds, delete "FloatingLyric Local Signing" in Keychain
+Access; `build.sh` stops finding it and falls back on its own.
+
+---
+
 ## Signing with an Apple Developer account
 
 Everything above works without paying Apple a cent. The only cost is that an
@@ -422,6 +461,7 @@ No third-party dependencies — Apple frameworks only.
 | No traffic light buttons visible | **Click Through** is on — turn it off in the menu bar |
 | Highlight runs early or late | Adjust **Sync offset** in the menu bar |
 | "Session expired" | ♪ → **Log Out**, then log in again |
+| Keychain asks about `com.floatinglyric.tokens` after every rebuild | Ad-hoc builds have no stable identity — run `./make-signing-cert.sh` once (see above) |
 | `no such module 'XCTest'` when building | `export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`, or permanently: `sudo xcode-select -s /Applications/Xcode.app` |
 
 ## Docs

@@ -19,6 +19,18 @@ fi
 SIGN_IDENTITY="${SIGN_IDENTITY:-}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-}"
 
+# Failing a Developer ID, fall back to the local certificate from
+# make-signing-cert.sh if it is installed. It buys one thing: a stable code
+# identity, so the Keychain stops asking about your Spotify token after every
+# rebuild. Gatekeeper is unmoved by it.
+LOCAL_IDENTITY="FloatingLyric Local Signing"
+LOCAL_SIGNING=""
+if [ -z "$SIGN_IDENTITY" ] &&
+   security find-identity -v -p codesigning 2>/dev/null | grep -qF "$LOCAL_IDENTITY"; then
+  SIGN_IDENTITY="$LOCAL_IDENTITY"
+  LOCAL_SIGNING="yes"
+fi
+
 echo "==> Building universal release binary"
 swift build -c release --arch arm64 --arch x86_64
 
@@ -33,7 +45,12 @@ cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
-if [ -n "$SIGN_IDENTITY" ]; then
+if [ -n "$LOCAL_SIGNING" ]; then
+  echo "==> Signing with the local certificate: $SIGN_IDENTITY"
+  # No hardened runtime or timestamp here: both exist to serve notarization,
+  # which a self-signed certificate cannot reach anyway.
+  codesign --force --deep --sign "$SIGN_IDENTITY" "$APP"
+elif [ -n "$SIGN_IDENTITY" ]; then
   echo "==> Signing with Developer ID: $SIGN_IDENTITY"
   # Hardened runtime and a secure timestamp are both required for notarization.
   codesign --force --deep --options runtime --timestamp \
@@ -52,7 +69,12 @@ ln -s /Applications "$STAGE/Applications"
 hdiutil create -volname "$APP_NAME" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
 rm -rf "$STAGE"
 
-if [ -n "$SIGN_IDENTITY" ] && [ -n "$NOTARY_PROFILE" ]; then
+if [ -n "$LOCAL_SIGNING" ]; then
+  echo
+  echo "Done: $DMG (signed with a local certificate)"
+  echo "Every future build now has the same identity, so the Keychain will stop"
+  echo "asking about your Spotify token. Gatekeeper still warns on other Macs."
+elif [ -n "$SIGN_IDENTITY" ] && [ -n "$NOTARY_PROFILE" ]; then
   echo "==> Signing the DMG"
   codesign --force --sign "$SIGN_IDENTITY" "$DMG"
 
@@ -72,6 +94,8 @@ elif [ -n "$SIGN_IDENTITY" ]; then
 else
   echo
   echo "Done: $DMG (unsigned)"
+  echo "Tip: ./make-signing-cert.sh stops the Keychain asking about your"
+  echo "     Spotify token after every rebuild."
   echo "First launch is blocked by Gatekeeper. Fix it with either:"
   echo "  right-click $APP_NAME -> Open -> Open"
   echo "  xattr -cr /path/to/$APP_NAME.app"
