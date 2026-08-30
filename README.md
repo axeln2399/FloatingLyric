@@ -336,6 +336,10 @@ If you have (or get) a **paid Apple Developer account — $99/year** — you can
 sign and notarize the build so it opens cleanly on any Mac, with no warning at
 all. `build.sh` already supports this; it just needs two environment variables.
 
+> The step-by-step runbook, with verification and what to do when a step fails,
+> is in **[`docs/apple-developer-id.md`](docs/apple-developer-id.md)**. What
+> follows is the summary.
+
 ### 1. Get a Developer ID Application certificate
 
 1. Join the [Apple Developer Program](https://developer.apple.com/programs/)
@@ -466,5 +470,6 @@ No third-party dependencies — Apple frameworks only.
 
 ## Docs
 
+- **Getting an Apple Developer account: [`docs/apple-developer-id.md`](docs/apple-developer-id.md)** — the full runbook for signing and notarizing, for the day you have one
 - Design: `docs/superpowers/specs/2026-08-30-floatinglyric-design.md`
 - Implementation plan: `docs/superpowers/plans/2026-08-30-floatinglyric.md`
