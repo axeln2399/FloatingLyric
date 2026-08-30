@@ -1,0 +1,3 @@
+import FloatingLyricCore
+
+FloatingLyricApp.run()
