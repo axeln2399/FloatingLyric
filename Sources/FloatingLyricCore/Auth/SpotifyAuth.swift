@@ -1,7 +1,7 @@
 import Foundation
 
 public final class SpotifyAuth: @unchecked Sendable {
-    public static let scope = "user-read-playback-state"
+    public static let scope = "user-read-playback-state user-modify-playback-state"
     private static let authorizeURL = URL(string: "https://accounts.spotify.com/authorize")!
     private static let tokenURL = URL(string: "https://accounts.spotify.com/api/token")!
     private static let refreshMarginSeconds: TimeInterval = 60

@@ -17,15 +17,26 @@ public struct LyricView: View {
         // Extra headroom so the traffic-light buttons never sit on the text.
         .padding(EdgeInsets(top: 30, leading: 16, bottom: 16, trailing: 16))
         .frame(minWidth: 360, minHeight: 190)
+        // Hover is decided by the window (see `FloatingWindow.isPointerInside`),
+        // not by SwiftUI: this window usually belongs to an inactive app.
+        .contentShape(Rectangle())
     }
+
+    /// Chrome fades out after a few idle seconds but keeps its space, so the
+    /// lyrics never jump around as it comes and goes.
+    private var chromeOpacity: Double { model.chromeVisible ? 1 : 0 }
 
     private var header: some View {
         HStack(spacing: 6) {
             Image(systemName: "music.note")
                 .font(.system(size: 10))
-            Text(model.title).fontWeight(.semibold).lineLimit(1)
-            if !model.artist.isEmpty {
-                Text("— \(model.artist)").lineLimit(1)
+            if let message = model.controlMessage {
+                Text(message).lineLimit(1).foregroundStyle(.orange)
+            } else {
+                Text(model.title).fontWeight(.semibold).lineLimit(1)
+                if !model.artist.isEmpty {
+                    Text("— \(model.artist)").lineLimit(1)
+                }
             }
             Spacer()
             if model.isOffline {
@@ -34,6 +45,8 @@ public struct LyricView: View {
         }
         .font(.system(size: 11))
         .foregroundStyle(.secondary)
+        .opacity(chromeOpacity)
+        .animation(.easeInOut(duration: 0.25), value: model.chromeVisible)
     }
 
     @ViewBuilder
@@ -60,13 +73,22 @@ public struct LyricView: View {
         return VStack(alignment: .leading, spacing: 6) {
             ForEach(window, id: \.self) { index in
                 if document.lines.indices.contains(index) {
-                    Text(document.lines[index].text)
-                        .font(.system(size: CGFloat(model.fontSize),
-                                      weight: index == center ? .bold : .regular))
-                        .foregroundStyle(index == center ? AnyShapeStyle(.primary)
-                                                         : AnyShapeStyle(.tertiary))
-                        .lineLimit(2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(document.lines[index].text)
+                            .font(.system(size: CGFloat(model.fontSize),
+                                          weight: index == center ? .bold : .regular))
+                            .foregroundStyle(index == center ? AnyShapeStyle(.primary)
+                                                             : AnyShapeStyle(.tertiary))
+                            .lineLimit(2)
+                        if model.showRomaji, let romaji = document.romanization(at: index) {
+                            Text(romaji)
+                                .font(.system(size: max(9, CGFloat(model.fontSize) - 6)))
+                                .foregroundStyle(index == center ? AnyShapeStyle(.secondary)
+                                                                 : AnyShapeStyle(.quaternary))
+                                .lineLimit(1)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
@@ -75,6 +97,7 @@ public struct LyricView: View {
 
     private var footer: some View {
         VStack(spacing: 4) {
+            transport
             ProgressView(value: progressFraction)
                 .progressViewStyle(.linear)
             HStack {
@@ -85,6 +108,40 @@ public struct LyricView: View {
             .font(.system(size: 10).monospacedDigit())
             .foregroundStyle(.secondary)
         }
+        .opacity(chromeOpacity)
+        .animation(.easeInOut(duration: 0.25), value: model.chromeVisible)
+    }
+
+    private var transport: some View {
+        HStack(spacing: 22) {
+            transportButton("backward.fill", size: 12, help: "Previous track") {
+                model.previousTapped()
+            }
+            transportButton(model.isPlaying ? "pause.fill" : "play.fill", size: 16,
+                            help: model.isPlaying ? "Pause" : "Play") {
+                model.playPauseTapped()
+            }
+            transportButton("forward.fill", size: 12, help: "Next track") {
+                model.nextTapped()
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .disabled(!model.canControl)
+        .opacity(model.canControl ? 1 : 0.35)
+        // Hidden chrome must not swallow clicks aimed at the window behind it.
+        .allowsHitTesting(model.chromeVisible)
+    }
+
+    private func transportButton(_ symbol: String, size: CGFloat, help: String,
+                                 action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: size, weight: .semibold))
+                .frame(width: 26, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
     }
 
     private var progressFraction: Double {

@@ -1,17 +1,28 @@
 import AppKit
 
 @MainActor
-public final class MenuBarController {
+public final class MenuBarController: NSObject, NSMenuDelegate {
     private let statusItem: NSStatusItem
     private let coordinator: AppCoordinator
-    private var opacityMenuRef: NSMenu?
+
     private let offsetSlider = NSSlider(value: Double(Defaults.syncOffsetMs),
                                         minValue: -2000, maxValue: 2000,
                                         target: nil, action: nil)
+    private let opacitySlider = NSSlider(
+        value: Double(Defaults.opacityPercent),
+        minValue: Double(PanelOpacity.minimumPercent),
+        maxValue: Double(PanelOpacity.maximumPercent),
+        target: nil, action: nil)
+
+    private var opacityLabel: NSTextField?
+    private var offsetLabelField: NSTextField?
+    private var transportItems: [NSMenuItem] = []
+    private var playPauseItem: NSMenuItem?
 
     public init(coordinator: AppCoordinator) {
         self.coordinator = coordinator
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        super.init()
         statusItem.button?.image = NSImage(systemSymbolName: "music.note.list",
                                            accessibilityDescription: "FloatingLyric")
         statusItem.menu = buildMenu()
@@ -19,12 +30,23 @@ public final class MenuBarController {
 
     private func buildMenu() -> NSMenu {
         let menu = NSMenu()
+        // Transport items are enabled by hand, once there is a session.
+        menu.autoenablesItems = false
+        menu.delegate = self
 
         menu.addItem(item("Show / Hide Lyrics", #selector(toggleLyrics), key: "l"))
         menu.addItem(item("Minimize Window", #selector(minimizeLyrics), key: "m"))
         menu.addItem(item("Close Window", #selector(closeLyrics), key: "w"))
         menu.addItem(check("Lock Position", #selector(toggleLock), on: Defaults.lockPosition))
         menu.addItem(check("Click Through", #selector(toggleClickThrough), on: Defaults.clickThrough))
+        menu.addItem(.separator())
+
+        let playPause = item("Play / Pause", #selector(playPause), key: "p")
+        let next = item("Next Track", #selector(nextTrack), key: "]")
+        let previous = item("Previous Track", #selector(previousTrack), key: "[")
+        playPauseItem = playPause
+        transportItems = [playPause, next, previous]
+        transportItems.forEach(menu.addItem)
         menu.addItem(.separator())
 
         let fontMenu = NSMenu()
@@ -38,21 +60,14 @@ public final class MenuBarController {
         fontItem.submenu = fontMenu
         menu.addItem(fontItem)
 
-        let opacityMenu = NSMenu()
-        for percent in PanelOpacity.steps {
-            let entry = item("\(percent)%", #selector(setOpacity(_:)))
-            entry.tag = percent
-            entry.state = Defaults.opacityPercent == percent ? .on : .off
-            opacityMenu.addItem(entry)
-        }
-        opacityMenu.addItem(.separator())
-        opacityMenu.addItem(item("Cycle", #selector(cycleOpacity), key: "t"))
-        let opacityItem = NSMenuItem(title: "Opacity", action: nil, keyEquivalent: "")
-        opacityItem.submenu = opacityMenu
-        opacityMenuRef = opacityMenu
-        menu.addItem(opacityItem)
+        menu.addItem(opacitySliderItem())
+        menu.addItem(item("More Opaque", #selector(moreOpaque), key: "="))
+        menu.addItem(item("More Transparent", #selector(moreTransparent), key: "-"))
+        menu.addItem(.separator())
 
-        menu.addItem(sliderItem())
+        menu.addItem(offsetSliderItem())
+        menu.addItem(check("Romaji Under Lyrics", #selector(toggleRomaji), on: Defaults.showRomaji))
+        menu.addItem(check("Auto-Hide Controls", #selector(toggleAutoHide), on: Defaults.autoHideChrome))
         menu.addItem(.separator())
         menu.addItem(item("Spotify Setup…", #selector(openSetup)))
         menu.addItem(item("Log Out", #selector(logOut)))
@@ -61,28 +76,41 @@ public final class MenuBarController {
         return menu
     }
 
-    private func sliderItem() -> NSMenuItem {
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 220, height: 46))
-        let label = NSTextField(labelWithString: offsetLabel())
-        label.frame = NSRect(x: 14, y: 26, width: 190, height: 16)
-        label.font = .menuFont(ofSize: 12)
-        label.tag = 99
+    // MARK: - Slider rows
 
-        offsetSlider.frame = NSRect(x: 14, y: 4, width: 190, height: 20)
+    private func opacitySliderItem() -> NSMenuItem {
+        let label = NSTextField(labelWithString: opacityText())
+        opacityLabel = label
+        opacitySlider.target = self
+        opacitySlider.action = #selector(opacityChanged)
+        // Continuous, so the window fades as the slider is dragged.
+        opacitySlider.isContinuous = true
+        return sliderRow(label: label, slider: opacitySlider)
+    }
+
+    private func offsetSliderItem() -> NSMenuItem {
+        let label = NSTextField(labelWithString: offsetText())
+        offsetLabelField = label
         offsetSlider.target = self
         offsetSlider.action = #selector(offsetChanged)
+        return sliderRow(label: label, slider: offsetSlider)
+    }
 
+    private func sliderRow(label: NSTextField, slider: NSSlider) -> NSMenuItem {
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 220, height: 46))
+        label.frame = NSRect(x: 14, y: 26, width: 190, height: 16)
+        label.font = .menuFont(ofSize: 12)
+        slider.frame = NSRect(x: 14, y: 4, width: 190, height: 20)
         container.addSubview(label)
-        container.addSubview(offsetSlider)
+        container.addSubview(slider)
 
         let entry = NSMenuItem()
         entry.view = container
         return entry
     }
 
-    private func offsetLabel() -> String {
-        String(format: "Sync offset: %+d ms", Defaults.syncOffsetMs)
-    }
+    private func opacityText() -> String { "Opacity: \(Defaults.opacityPercent)%" }
+    private func offsetText() -> String { String(format: "Sync offset: %+d ms", Defaults.syncOffsetMs) }
 
     private func item(_ title: String, _ action: Selector, key: String = "") -> NSMenuItem {
         let entry = NSMenuItem(title: title, action: action, keyEquivalent: key)
@@ -96,11 +124,30 @@ public final class MenuBarController {
         return entry
     }
 
+    // MARK: - NSMenuDelegate
+
+    /// The window and the panel can both change these behind the menu's back,
+    /// so everything stateful is refreshed as the menu opens.
+    public func menuWillOpen(_ menu: NSMenu) {
+        opacitySlider.doubleValue = Double(Defaults.opacityPercent)
+        opacityLabel?.stringValue = opacityText()
+        offsetSlider.doubleValue = Double(Defaults.syncOffsetMs)
+        offsetLabelField?.stringValue = offsetText()
+
+        let canControl = coordinator.viewModel.canControl
+        transportItems.forEach { $0.isEnabled = canControl }
+        playPauseItem?.title = coordinator.viewModel.isPlaying ? "Pause" : "Play"
+    }
+
     // MARK: - Actions
 
     @objc private func toggleLyrics() { coordinator.togglePanel() }
     @objc private func minimizeLyrics() { coordinator.minimizePanel() }
     @objc private func closeLyrics() { coordinator.closePanel() }
+
+    @objc private func playPause() { coordinator.playPause() }
+    @objc private func nextTrack() { coordinator.nextTrack() }
+    @objc private func previousTrack() { coordinator.previousTrack() }
 
     @objc private func toggleLock(_ sender: NSMenuItem) {
         Defaults.lockPosition.toggle()
@@ -114,32 +161,46 @@ public final class MenuBarController {
         coordinator.applyPanelPreferences()
     }
 
+    @objc private func toggleRomaji(_ sender: NSMenuItem) {
+        Defaults.showRomaji.toggle()
+        sender.state = Defaults.showRomaji ? .on : .off
+        coordinator.applyPanelPreferences()
+    }
+
+    @objc private func toggleAutoHide(_ sender: NSMenuItem) {
+        Defaults.autoHideChrome.toggle()
+        sender.state = Defaults.autoHideChrome ? .on : .off
+        coordinator.applyPanelPreferences()
+    }
+
     @objc private func setFontSize(_ sender: NSMenuItem) {
         Defaults.fontSize = sender.tag
         sender.menu?.items.forEach { $0.state = $0.tag == sender.tag ? .on : .off }
         coordinator.applyPanelPreferences()
     }
 
-    @objc private func setOpacity(_ sender: NSMenuItem) {
-        applyOpacity(sender.tag)
+    @objc private func opacityChanged(_ sender: NSSlider) {
+        applyOpacity(Int(sender.doubleValue.rounded()))
     }
 
-    @objc private func cycleOpacity() {
-        applyOpacity(PanelOpacity.next(after: Defaults.opacityPercent))
+    @objc private func moreOpaque() {
+        applyOpacity(PanelOpacity.stepped(Defaults.opacityPercent, by: PanelOpacity.stepPercent))
+    }
+
+    @objc private func moreTransparent() {
+        applyOpacity(PanelOpacity.stepped(Defaults.opacityPercent, by: -PanelOpacity.stepPercent))
     }
 
     private func applyOpacity(_ percent: Int) {
         Defaults.opacityPercent = percent
-        let selected = Defaults.opacityPercent
-        opacityMenuRef?.items.forEach { $0.state = $0.tag == selected ? .on : .off }
+        opacitySlider.doubleValue = Double(Defaults.opacityPercent)
+        opacityLabel?.stringValue = opacityText()
         coordinator.applyPanelPreferences()
     }
 
     @objc private func offsetChanged(_ sender: NSSlider) {
         Defaults.syncOffsetMs = Int(sender.doubleValue)
-        if let label = sender.superview?.viewWithTag(99) as? NSTextField {
-            label.stringValue = offsetLabel()
-        }
+        offsetLabelField?.stringValue = offsetText()
     }
 
     @objc private func openSetup() { coordinator.showSetup() }

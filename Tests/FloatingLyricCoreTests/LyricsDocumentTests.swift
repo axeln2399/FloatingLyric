@@ -48,3 +48,40 @@ final class LyricsDocumentTests: XCTestCase {
         XCTAssertEqual(single.index(atPositionMs: 900_000, offsetMs: 0), 0)
     }
 }
+
+final class LyricsDocumentRomanizationTests: XCTestCase {
+    func test_everyNonLatinLineGetsAReading() {
+        let doc = LyricsDocument(lines: [
+            LyricLine(timeMs: 0, text: "こんにちは"),
+            LyricLine(timeMs: 1000, text: "hello there"),
+        ])
+        XCTAssertNotNil(doc.romanization(at: 0))
+        XCTAssertTrue(doc.romanization(at: 0)!.unicodeScalars.allSatisfy { $0.value < 0x0250 })
+        XCTAssertNil(doc.romanization(at: 1), "Latin lines need no reading")
+        XCTAssertTrue(doc.hasRomanizations)
+    }
+
+    func test_anEnglishSongHasNoReadingsAtAll() {
+        let doc = LyricsDocument(lines: [
+            LyricLine(timeMs: 0, text: "Blinding lights"),
+            LyricLine(timeMs: 1000, text: "I said ooh"),
+        ])
+        XCTAssertFalse(doc.hasRomanizations)
+    }
+
+    /// Readings are built on the main thread as a track starts, so a long song
+    /// in a heavy script must not cost a visible pause.
+    func test_readingsForALongSongAreCheapEnoughForTheMainThread() {
+        let lines = (0..<80).map { LyricLine(timeMs: $0 * 1000, text: "君の名は僕の心に残っている") }
+        let start = Date()
+        let doc = LyricsDocument(lines: lines)
+        XCTAssertTrue(doc.hasRomanizations)
+        XCTAssertLessThan(Date().timeIntervalSince(start), 0.2)
+    }
+
+    func test_indexesOutsideTheDocumentReturnNoReading() {
+        let doc = LyricsDocument(lines: [LyricLine(timeMs: 0, text: "こんにちは")])
+        XCTAssertNil(doc.romanization(at: -1))
+        XCTAssertNil(doc.romanization(at: 99))
+    }
+}

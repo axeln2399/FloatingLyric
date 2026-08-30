@@ -54,14 +54,45 @@ public final class FloatingWindow: NSWindow, NSWindowDelegate {
         applyPreferences()
     }
 
+    /// Whether the window furniture is currently on screen, and whether the
+    /// pointer is on the window — both decided by `LyricViewModel` and pushed
+    /// in here by the coordinator.
+    private var chromeVisible = true
+    private var isHovering = false
+
+    /// Whether the pointer is over the window right now.
+    ///
+    /// Polled rather than tracked: FloatingLyric has no Dock icon and usually
+    /// is not the active app, and mouse-entered/exited events are not
+    /// delivered reliably to a background app's window. A hit test against the
+    /// current mouse location always is.
+    public var isPointerInside: Bool {
+        guard isVisible, !isMiniaturized else { return false }
+        return frame.contains(NSEvent.mouseLocation)
+    }
+
+    public func setChrome(visible: Bool, isHovering hovering: Bool) {
+        guard chromeVisible != visible || isHovering != hovering else { return }
+        chromeVisible = visible
+        isHovering = hovering
+        applyPreferences()
+    }
+
     public func applyPreferences() {
         ignoresMouseEvents = Defaults.clickThrough
         isMovableByWindowBackground = !Defaults.lockPosition && !Defaults.clickThrough
-        alphaValue = PanelOpacity.alpha(forPercent: Defaults.opacityPercent)
+
+        // Set straight, not through `animator()`: the value has to be readable
+        // the moment it is applied, and the chrome does its own fading inside
+        // the SwiftUI view.
+        alphaValue = PanelOpacity.alpha(forPercent: Defaults.opacityPercent,
+                                        isHovering: isHovering)
+
         // Click-through would swallow clicks on the traffic lights too, so hide
-        // them rather than leave dead buttons on screen.
+        // them rather than leave dead buttons on screen. They are furniture as
+        // much as the header is, so they also go with the rest of the chrome.
         for button in [NSWindow.ButtonType.closeButton, .miniaturizeButton] {
-            standardWindowButton(button)?.isHidden = Defaults.clickThrough
+            standardWindowButton(button)?.isHidden = Defaults.clickThrough || !chromeVisible
         }
     }
 

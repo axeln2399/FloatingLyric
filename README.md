@@ -69,8 +69,10 @@ You need this once. It takes about two minutes.
 ### 1. Log in to the Spotify dashboard
 
 Go to **<https://developer.spotify.com/dashboard>** and log in with the same
-Spotify account you actually listen on. Any account works — **free accounts are
-fine, Premium is not required**, because the app only *reads* what's playing.
+Spotify account you actually listen on. A **free account is enough to see
+lyrics** — reading what's playing costs nothing. The **⏮ ⏯ ⏭ buttons need
+Spotify Premium**, which is Spotify's rule for every app that controls playback,
+not this one's.
 
 ### 2. Create an app
 
@@ -115,10 +117,19 @@ disconnect the account.
 
 ### What the app can and cannot do with your account
 
-It requests exactly one permission, `user-read-playback-state`. That means it
-can see the title, artist, album and playback position of the current track.
-It **cannot** control playback, read your playlists, see your library, or change
-anything about your account.
+It requests exactly two permissions:
+
+| Scope | What it allows |
+|---|---|
+| `user-read-playback-state` | See the title, artist, album and playback position of the current track |
+| `user-modify-playback-state` | Play, pause and skip — only when you press one of the buttons |
+
+It **cannot** read your playlists, see your library, or change anything about
+your account.
+
+> Connected before playback control existed? Your saved login only carries the
+> first scope. **♪ → Log Out**, then **♪ → Spotify Setup…** and log in again to
+> pick up the second one.
 
 Your refresh token is stored in the **macOS Keychain**. The Client ID sits in
 `UserDefaults`. Nothing is ever sent anywhere except Spotify's API and LRCLIB.
@@ -161,29 +172,89 @@ Menu bar icon (**♪**):
 | **Close Window** (⌘W) | Close it — the app keeps running |
 | **Lock Position** | Stop accidental dragging |
 | **Click Through** | Window becomes purely visual; clicks pass through to whatever is behind it |
+| **Play / Pause** (⌘P) | Play or pause Spotify |
+| **Next Track** (⌘]) | Skip forward |
+| **Previous Track** (⌘[) | Skip back |
 | **Font Size** | Small (14) / Medium (18) / Large (24) |
-| **Opacity** | **15% / 45% / 60%** — see below |
+| **Opacity** | A 0–100% slider — see below |
+| **More Opaque** (⌘=) / **More Transparent** (⌘-) | Nudge the opacity 5% at a time |
 | **Sync offset** | Nudge ±2000 ms if the highlight runs early or late |
+| **Romaji Under Lyrics** | Print a Latin reading under non-Latin lines |
+| **Auto-Hide Controls** | Fade everything but the lyrics after 3 idle seconds |
 | **Spotify Setup…** | Re-enter the Client ID |
 | **Log Out** | Disconnect the Spotify account |
 | **Quit** (⌘Q) | Exit |
 
 ### Opacity
 
-Three transparency steps, under **♪ → Opacity**:
+**♪ → Opacity** is a slider running the whole range from **0%** (completely
+invisible) to **100%** (solid). The default is 60%. ⌘= and ⌘- nudge it 5% at a
+time without opening the menu, and the setting is remembered across restarts.
 
-| Step | Feel |
+| Setting | Feel |
 |---|---|
-| **15%** | Nearly invisible — a ghost you glance at, won't distract while working |
-| **45%** | Half-there — readable but the window behind still shows through |
+| **0–15%** | A ghost you glance at — won't distract while working |
+| **45%** | Half-there: readable, but the window behind still shows through |
 | **60%** | Most readable — the default |
+| **100%** | Solid |
 
-**♪ → Opacity → Cycle** (⌘T) steps 15% → 45% → 60% → 15%, so you can flick
-between them without opening the submenu. The choice is remembered across
-restarts.
+> **A 0% window is not lost.** Move the pointer over where it sits and it fades
+> back up to 35% so you can find it, grab it, and raise the slider again. Let
+> go and it disappears once more.
 
-Pair **15%** with **Click Through** and the lyrics become a pure heads-up
-display — visible, but completely non-interactive.
+Pair a low opacity with **Click Through** and the lyrics become a pure heads-up
+display — visible, but completely non-interactive. (Click Through also switches
+off the hover rescue above, since the window no longer sees the pointer at all;
+raise the opacity from the menu bar instead.)
+
+### Playback controls
+
+The panel carries **⏮ ⏯ ⏭** under the progress bar, and the same three commands
+are in the menu bar. They drive Spotify itself, so they work on whichever device
+is playing — your Mac, your phone, a speaker.
+
+Two things Spotify requires for these:
+
+- **Spotify Premium.** The Web API refuses playback commands from free
+  accounts; the panel says *"Spotify Premium required to control playback"*.
+- **An active device.** If nothing has played recently there is nothing to
+  command, and you'll see *"No active Spotify device"* — start a track in
+  Spotify first.
+
+If you connected your account before playback control existed, your saved login
+predates the permission it needs. The panel says *"Log out and back in to enable
+playback controls"* — do exactly that (♪ → Log Out, then ♪ → Spotify Setup…).
+
+### Romaji under non-Latin lyrics
+
+For a song written in Japanese, Korean, Chinese, Cyrillic, Greek, Thai and the
+like, FloatingLyric prints a Latin reading under each line, so you can sing
+along without reading the script:
+
+```
+君の名は
+kimi no na ha
+```
+
+Lines already in Latin script are left exactly as they are, so an English song
+looks no different. Turn it off with **♪ → Romaji Under Lyrics**.
+
+The readings come from macOS's own text engine, which picks a kanji reading
+from the surrounding words. It is a good guess, not a lyricist's transcription —
+names and unusual readings will sometimes come out wrong.
+
+### Auto-hiding controls
+
+After **3 seconds** with no pointer over the window, everything but the lyrics
+fades out: the track header, the progress bar, the transport buttons and the
+traffic lights. What is left is just the words, floating over your work.
+
+Move the pointer onto the window and it all comes back, staying up for as long
+as you hover. Nothing moves as it fades — the layout holds its place, so the
+lyrics never jump.
+
+Turn it off with **♪ → Auto-Hide Controls** to keep the window furniture on
+screen permanently.
 
 ---
 
@@ -315,7 +386,7 @@ No third-party dependencies — Apple frameworks only.
 | `INVALID_CLIENT: Invalid redirect URI` | The Redirect URI in the Spotify dashboard must be `http://127.0.0.1:8888/callback` exactly — `http` not `https`, `127.0.0.1` not `localhost`, no trailing slash |
 | Login browser page never returns | Same as above; also check nothing else is on port 8888 |
 | "Port 8888–8890 in use" | Quit whatever holds those ports, then log in again |
-| Nothing appears on screen | The window may be at 15% opacity — ♪ → Opacity → 60% |
+| Nothing appears on screen | The window may be near 0% opacity — hover where it sits, or drag ♪ → Opacity back up |
 | Can't find the window at all | ♪ → Show / Hide Lyrics twice; it re-centres if its saved position is off-screen |
 | Closed the window by accident | ♪ → Show / Hide Lyrics (⌘L). Closing never quits the app. |
 | Minimized it and can't get it back | Click its thumbnail in the Dock, or ♪ → Show / Hide Lyrics |

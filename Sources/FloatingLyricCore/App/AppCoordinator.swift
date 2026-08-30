@@ -11,6 +11,7 @@ public final class AppCoordinator {
     private let clock = PlayheadClock()
 
     private var auth: SpotifyAuth?
+    private var playback: PlaybackController?
     private var poller: NowPlayingPoller?
     private var lyricsProvider: LyricsProvider?
     private var window: FloatingWindow?
@@ -32,6 +33,10 @@ public final class AppCoordinator {
             MainActor.assumeIsolated { window.saveFrame() }
         }
 
+        viewModel.onPlayPause = { [weak self] in self?.togglePlayPause() }
+        viewModel.onNext = { [weak self] in self?.skip(.next) }
+        viewModel.onPrevious = { [weak self] in self?.skip(.previous) }
+
         lyricsProvider = LyricsProvider(http: http, cache: cache)
         startTicking()
         buildSession()
@@ -42,6 +47,8 @@ public final class AppCoordinator {
     private func buildSession() {
         poller?.stop()
         poller = nil
+        playback = nil
+        viewModel.canControl = false
 
         guard let clientID = Defaults.clientID else {
             viewModel.apply(state: .failed(.notConfigured))
@@ -56,6 +63,9 @@ public final class AppCoordinator {
             viewModel.apply(state: .failed(.notLoggedIn))
             return
         }
+
+        playback = PlaybackController(auth: auth, http: http)
+        viewModel.canControl = true
 
         let poller = NowPlayingPoller(auth: auth, http: http)
         self.poller = poller
@@ -111,6 +121,8 @@ public final class AppCoordinator {
     public func logOut() {
         poller?.stop()
         poller = nil
+        playback = nil
+        viewModel.canControl = false
         auth?.logOut()
         currentTrackID = nil
         viewModel.apply(state: .failed(.notLoggedIn))
@@ -146,6 +158,46 @@ public final class AppCoordinator {
     public func applyPanelPreferences() {
         window?.applyPreferences()
         viewModel.fontSize = Defaults.fontSize
+        viewModel.setShowRomaji(Defaults.showRomaji)
+        viewModel.noteActivity()
+    }
+
+    // MARK: - Playback control
+
+    private enum Skip { case next, previous }
+
+    /// Private on purpose: it reads the button state the view has *already*
+    /// flipped, so it is only correct when reached through `playPauseTapped()`.
+    private func togglePlayPause() {
+        guard let playback else { return }
+        let wasPlaying = !viewModel.isPlaying
+        run { await playback.toggle(isPlaying: wasPlaying) }
+    }
+
+    public func nextTrack() { viewModel.nextTapped() }
+    public func previousTrack() { viewModel.previousTapped() }
+    public func playPause() { viewModel.playPauseTapped() }
+
+    private func skip(_ direction: Skip) {
+        guard let playback else { return }
+        run { direction == .next ? await playback.next() : await playback.previous() }
+    }
+
+    /// Runs a control call, reports any failure in the panel, then re-polls so
+    /// the display catches up without waiting for the next scheduled poll.
+    private func run(_ call: @escaping () async -> AppError?) {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            if let error = await call() {
+                self.viewModel.report(controlError: error)
+            }
+            // Spotify applies the command asynchronously; a beat of delay
+            // keeps the follow-up poll from reading the pre-command state.
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            if let state = await self.poller?.pollOnce() {
+                self.handle(state)
+            }
+        }
     }
 
     // MARK: - State plumbing
@@ -181,8 +233,11 @@ public final class AppCoordinator {
         tickTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                self.viewModel.tick(positionMs: self.clock.positionMs(
-                    now: Date().timeIntervalSinceReferenceDate))
+                let now = Date().timeIntervalSinceReferenceDate
+                self.viewModel.tick(positionMs: self.clock.positionMs(now: now))
+                self.viewModel.setHovering(self.window?.isPointerInside ?? false, now: now)
+                self.window?.setChrome(visible: self.viewModel.chromeVisible,
+                                       isHovering: self.viewModel.isHovering)
             }
         }
     }

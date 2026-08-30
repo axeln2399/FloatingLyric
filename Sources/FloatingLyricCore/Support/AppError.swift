@@ -9,6 +9,9 @@ public enum AppError: Error, Equatable {
     case badResponse(status: Int)
     case portUnavailable
     case authCancelled
+    case premiumRequired
+    case noActiveDevice
+    case controlScopeMissing
 
     public var displayMessage: String {
         switch self {
@@ -20,6 +23,10 @@ public enum AppError: Error, Equatable {
         case .badResponse:     return "Spotify returned an unexpected response"
         case .portUnavailable: return "Port 8888–8890 in use. Free one and retry."
         case .authCancelled:   return "Login cancelled"
+        case .premiumRequired: return "Spotify Premium required to control playback"
+        case .noActiveDevice:  return "No active Spotify device"
+        case .controlScopeMissing:
+            return "Log out and back in to enable playback controls"
         }
     }
 }

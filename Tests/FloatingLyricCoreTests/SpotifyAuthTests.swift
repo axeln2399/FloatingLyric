@@ -24,7 +24,7 @@ final class SpotifyAuthTests: XCTestCase {
         XCTAssertEqual(value("code_challenge_method"), "S256")
         XCTAssertEqual(value("code_challenge"), "CHAL")
         XCTAssertEqual(value("state"), "ST")
-        XCTAssertEqual(value("scope"), "user-read-playback-state")
+        XCTAssertEqual(value("scope"), SpotifyAuth.scope)
         XCTAssertEqual(value("redirect_uri"), redirect)
     }
 

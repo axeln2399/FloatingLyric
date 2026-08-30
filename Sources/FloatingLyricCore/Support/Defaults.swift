@@ -23,11 +23,23 @@ public enum Defaults {
         set { d.set(newValue, forKey: "fontSize") }
     }
 
-    /// Always one of `PanelOpacity.steps`, whatever is on disk.
+    /// Always within 0…100, whatever is on disk.
     public static var opacityPercent: Int {
-        get { PanelOpacity.nearest(d.object(forKey: "opacityPercent") as? Int
+        get { PanelOpacity.clamped(d.object(forKey: "opacityPercent") as? Int
                                    ?? PanelOpacity.defaultPercent) }
-        set { d.set(PanelOpacity.nearest(newValue), forKey: "opacityPercent") }
+        set { d.set(PanelOpacity.clamped(newValue), forKey: "opacityPercent") }
+    }
+
+    /// Romaji (or other Latin readings) printed under non-Latin lyric lines.
+    public static var showRomaji: Bool {
+        get { d.object(forKey: "showRomaji") as? Bool ?? true }
+        set { d.set(newValue, forKey: "showRomaji") }
+    }
+
+    /// Hide everything but the lyrics after a few idle seconds.
+    public static var autoHideChrome: Bool {
+        get { d.object(forKey: "autoHideChrome") as? Bool ?? true }
+        set { d.set(newValue, forKey: "autoHideChrome") }
     }
 
     public static var clickThrough: Bool {

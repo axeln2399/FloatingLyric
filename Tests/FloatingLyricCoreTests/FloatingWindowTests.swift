@@ -75,6 +75,38 @@ final class FloatingWindowTests: XCTestCase {
         XCTAssertEqual(window.standardWindowButton(.closeButton)?.isHidden, false)
     }
 
+    func test_idleChromeTakesTheTrafficLightsWithIt() {
+        Defaults.clickThrough = false
+        let window = makeWindow()
+        XCTAssertEqual(window.standardWindowButton(.closeButton)?.isHidden, false)
+
+        window.setChrome(visible: false, isHovering: false)
+        XCTAssertEqual(window.standardWindowButton(.closeButton)?.isHidden, true)
+        XCTAssertEqual(window.standardWindowButton(.miniaturizeButton)?.isHidden, true)
+
+        window.setChrome(visible: true, isHovering: true)
+        XCTAssertEqual(window.standardWindowButton(.closeButton)?.isHidden, false)
+    }
+
+    func test_hoveringAnInvisibleWindowMakesItFindableAgain() {
+        Defaults.opacityPercent = 0
+        let window = makeWindow()
+        XCTAssertEqual(window.alphaValue, 0, accuracy: 0.001)
+
+        window.setChrome(visible: true, isHovering: true)
+        XCTAssertEqual(window.alphaValue,
+                       Double(PanelOpacity.hoverFloorPercent) / 100, accuracy: 0.001)
+
+        window.setChrome(visible: false, isHovering: false)
+        XCTAssertEqual(window.alphaValue, 0, accuracy: 0.001)
+    }
+
+    func test_aHiddenWindowIsNeverHovered() {
+        let window = makeWindow()
+        window.orderOut(nil)
+        XCTAssertFalse(window.isPointerInside)
+    }
+
     override func tearDown() {
         Defaults.clickThrough = false
         Defaults.opacityPercent = PanelOpacity.defaultPercent
