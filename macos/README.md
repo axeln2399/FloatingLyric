@@ -85,14 +85,23 @@ Click **Create app**. Fill in:
 |---|---|
 | **App name** | Anything, e.g. `FloatingLyric` |
 | **App description** | Anything, e.g. `Personal lyrics overlay` |
-| **Redirect URI** | `http://127.0.0.1:8888/callback` — see the warning below |
+| **Redirect URI** | Add **both** of the two below |
 | **Which API/SDKs** | Tick **Web API** |
 
-> ⚠️ **The Redirect URI must match exactly.** Type
-> `http://127.0.0.1:8888/callback` — with `http` (not `https`), with
-> `127.0.0.1` (**not** `localhost`, Spotify rejects it), and with no trailing
-> slash. Click **Add** so it appears in the list, then save. A single character
-> off and login will fail with `INVALID_CLIENT: Invalid redirect URI`.
+Add these two, clicking **Add** after each so both appear in the list:
+
+```
+floatinglyric://callback
+http://127.0.0.1:8888/callback
+```
+
+> ⚠️ **Both must match exactly.** The first is the one normally used — it's
+> what lets Spotify's login appear inside the app. The second is a fallback for
+> the rare case the in-app window can't open, and costs one extra click to add
+> now instead of a puzzling failure later. Type them literally: `http` not
+> `https`, `127.0.0.1` **not** `localhost` (Spotify rejects it), no trailing
+> slash. A single character off and login fails with `INVALID_CLIENT: Invalid
+> redirect URI`.
 
 Accept the terms and click **Save**.
 
@@ -107,9 +116,15 @@ designed for apps that can't keep a secret safe. Leave the secret hidden.
 ### 4. Paste it into FloatingLyric
 
 In FloatingLyric's setup window, paste the Client ID and click
-**Save and Log In**. Your browser opens Spotify's authorization page once —
-click **Agree**. The browser shows "FloatingLyric is connected", and you can
-close that tab.
+**Save and Log In**. **Spotify's own login page opens in a window over the
+app** — sign in with your Spotify username and password (or the Google / Apple
+/ Facebook buttons), then click **Agree**. The window closes itself.
+
+Your password goes to Spotify's page, never through FloatingLyric. The app only
+ever receives an access token, which is what OAuth is for.
+
+That window shares Safari's cookies, so if you're already signed in to Spotify
+in Safari it's usually just one **Agree** click with no password at all.
 
 That's it. Play something on Spotify — on any device — and lyrics appear.
 
@@ -458,9 +473,10 @@ No third-party dependencies — Apple frameworks only.
 | Symptom | Fix |
 |---|---|
 | "App is damaged and can't be opened" | `xattr -cr dist/FloatingLyric.app` |
-| `INVALID_CLIENT: Invalid redirect URI` | The Redirect URI in the Spotify dashboard must be `http://127.0.0.1:8888/callback` exactly — `http` not `https`, `127.0.0.1` not `localhost`, no trailing slash |
-| Login browser page never returns | Same as above; also check nothing else is on port 8888 |
-| "Port 8888–8890 in use" | Quit whatever holds those ports, then log in again |
+| `INVALID_CLIENT: Invalid redirect URI` | The dashboard needs **both** `floatinglyric://callback` and `http://127.0.0.1:8888/callback`, each exact — `http` not `https`, `127.0.0.1` not `localhost`, no trailing slash |
+| "Could not open the Spotify login window" | The in-app window failed; the app falls back to your browser, which needs the loopback URI above registered |
+| Login page never returns | Redirect URI mismatch, as above; if it fell back to the browser, also check nothing else holds port 8888 |
+| "Port 8888–8890 in use" | Only reachable via the browser fallback — quit whatever holds those ports, then log in again |
 | Nothing appears on screen | The window may be near 0% opacity — hover where it sits, or drag ♪ → Opacity back up |
 | Can't find the window at all | ♪ → Show / Hide Lyrics twice; it re-centres if its saved position is off-screen |
 | Closed the window by accident | ♪ → Show / Hide Lyrics (⌘L). Closing never quits the app. |

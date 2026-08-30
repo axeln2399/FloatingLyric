@@ -54,13 +54,20 @@ No client secret. The app is public; PKCE is what makes that safe.
 | Token | `https://accounts.spotify.com/api/token` |
 | Scopes | `user-read-playback-state user-modify-playback-state` |
 | Challenge method | `S256` |
-| Redirect URI | `http://127.0.0.1:PORT/callback`, PORT tried in order: **8888, 8889, 8890** |
+| Redirect URI | `floatinglyric://callback` (primary), or `http://127.0.0.1:PORT/callback` with PORT tried in order **8888, 8889, 8890** (fallback) |
 | Refresh margin | Refresh when the token has **60 s** or less left |
 
-`127.0.0.1`, never `localhost` — Spotify rejects the latter. The redirect URI
-must match what's registered in the user's Spotify dashboard character for
-character, so if a platform can't open a loopback listener, its redirect scheme
-has to be registered separately by the user.
+Prefer a **private URL scheme** over a loopback listener where the platform can
+intercept one: macOS uses `ASWebAuthenticationSession`, which shows Spotify's
+page in a sheet over the app, shares the system browser's cookies, and needs no
+local web server, no port, and no firewall permission. Android and iOS have the
+same thing in Custom Tabs and `ASWebAuthenticationSession`. Keep the loopback
+flow only as a fallback for platforms without one.
+
+If you use loopback: `127.0.0.1`, never `localhost` — Spotify rejects the
+latter. Either way the redirect URI must match what's registered in the user's
+Spotify dashboard character for character, so whichever scheme a platform uses
+must be listed in the setup instructions you give the user.
 
 Store the **refresh token** in the platform's secure store, never in plain
 preferences. The client ID is not a secret and lives in ordinary settings.

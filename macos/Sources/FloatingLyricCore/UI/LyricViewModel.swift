@@ -72,6 +72,7 @@ public final class LyricViewModel: ObservableObject {
             case .network:
                 isOffline = true       // keep whatever lyrics are on screen
             case .rateLimited, .badResponse, .portUnavailable, .authCancelled,
+                 .authUnavailable, .authStateMismatch,
                  .premiumRequired, .noActiveDevice, .controlScopeMissing:
                 break                  // transient; leave the current display alone
             }

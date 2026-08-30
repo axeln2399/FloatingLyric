@@ -102,16 +102,25 @@ private struct SetupView: View {
         VStack(alignment: .leading, spacing: 8) {
             step(1, "Open developer.spotify.com/dashboard and click Create app.")
             step(2, "Name it anything, e.g. FloatingLyric.")
-            step(3, "Set the Redirect URI to exactly:")
-            Text("http://127.0.0.1:8888/callback")
-                .font(.system(.callout, design: .monospaced))
-                .textSelection(.enabled)
-                .padding(6)
-                .background(Color.secondary.opacity(0.12),
-                            in: RoundedRectangle(cornerRadius: 5))
+            step(3, "Add BOTH of these Redirect URIs, exactly:")
+            redirectURI(SpotifyCallback.uri)
+            redirectURI("http://127.0.0.1:8888/callback")
+            Text("The first one is used. The second is a fallback — add it too.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             step(4, "Tick \"Web API\", save, then copy the Client ID below.")
         }
         .font(.callout)
+    }
+
+    private func redirectURI(_ uri: String) -> some View {
+        Text(uri)
+            .font(.system(.callout, design: .monospaced))
+            .textSelection(.enabled)
+            .padding(6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.secondary.opacity(0.12),
+                        in: RoundedRectangle(cornerRadius: 5))
     }
 
     private func step(_ number: Int, _ text: String) -> some View {

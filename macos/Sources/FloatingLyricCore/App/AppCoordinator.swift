@@ -20,6 +20,10 @@ public final class AppCoordinator {
     private var currentTrackID: String?
     private var lyricsTask: Task<Void, Never>?
 
+    /// Built lazily: the sheet needs a window to hang from, and there is none
+    /// until `start()` has run.
+    private lazy var webAuth: WebAuthenticating = WebAuthSession { [weak self] in self?.window }
+
     public init() {}
 
     public func start() {
@@ -83,36 +87,72 @@ public final class AppCoordinator {
             return
         }
         Task { @MainActor in
-            let pkce = PKCE.generate()
-            let state = PKCE.randomState()
+            do {
+                try await logInWithSheet(auth)
+                buildSession()
+            } catch AppError.authUnavailable {
+                // The sheet could not be shown at all. Rather than strand the
+                // user, fall back to the browser and a loopback listener.
+                await logInWithBrowser(auth)
+            } catch let error as AppError {
+                viewModel.apply(state: .failed(error))
+            } catch {
+                viewModel.apply(state: .failed(.authCancelled))
+            }
+        }
+    }
 
-            for port in CallbackListener.candidatePorts {
-                let redirect = CallbackListener.redirectURI(port: port)
-                let listener = Task { try await CallbackListener.waitForCallback(port: port) }
-                try? await Task.sleep(nanoseconds: 250_000_000)
+    /// Spotify's own login page, in a sheet over the app.
+    private func logInWithSheet(_ auth: SpotifyAuth) async throws {
+        let pkce = PKCE.generate()
+        let state = PKCE.randomState()
+        let url = auth.authorizationURL(challenge: pkce.challenge, state: state,
+                                        redirectURI: SpotifyCallback.uri)
 
-                NSWorkspace.shared.open(auth.authorizationURL(challenge: pkce.challenge,
-                                                              state: state,
-                                                              redirectURI: redirect))
-                do {
-                    let result = try await listener.value
-                    guard result.state == state, let code = result.code else {
-                        viewModel.apply(state: .failed(.authCancelled))
-                        return
-                    }
-                    try await auth.exchange(code: code, verifier: pkce.verifier,
-                                            redirectURI: redirect)
-                    buildSession()
-                    return
-                } catch AppError.portUnavailable {
-                    continue                       // try the next candidate port
-                } catch {
+        let callback = try await webAuth.authenticate(url: url,
+                                                      callbackScheme: SpotifyCallback.scheme)
+        switch SpotifyCallback.code(from: callback, expectedState: state) {
+        case .success(let code):
+            try await auth.exchange(code: code, verifier: pkce.verifier,
+                                    redirectURI: SpotifyCallback.uri)
+        case .failure(let error):
+            throw error
+        }
+    }
+
+    /// The original flow, kept as a safety net: the default browser plus a
+    /// one-shot local listener. Needs the loopback redirect registered in the
+    /// Spotify dashboard alongside the app's own scheme.
+    private func logInWithBrowser(_ auth: SpotifyAuth) async {
+        let pkce = PKCE.generate()
+        let state = PKCE.randomState()
+
+        for port in CallbackListener.candidatePorts {
+            let redirect = CallbackListener.redirectURI(port: port)
+            let listener = Task { try await CallbackListener.waitForCallback(port: port) }
+            try? await Task.sleep(nanoseconds: 250_000_000)
+
+            NSWorkspace.shared.open(auth.authorizationURL(challenge: pkce.challenge,
+                                                          state: state,
+                                                          redirectURI: redirect))
+            do {
+                let result = try await listener.value
+                guard result.state == state, let code = result.code else {
                     viewModel.apply(state: .failed(.authCancelled))
                     return
                 }
+                try await auth.exchange(code: code, verifier: pkce.verifier,
+                                        redirectURI: redirect)
+                buildSession()
+                return
+            } catch AppError.portUnavailable {
+                continue                       // try the next candidate port
+            } catch {
+                viewModel.apply(state: .failed(.authCancelled))
+                return
             }
-            viewModel.apply(state: .failed(.portUnavailable))
         }
+        viewModel.apply(state: .failed(.portUnavailable))
     }
 
     public func logOut() {

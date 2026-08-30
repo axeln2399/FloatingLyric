@@ -13,5 +13,14 @@
     <key>LSMinimumSystemVersion</key>    <string>14.0</string>
     <key>LSUIElement</key>               <true/>
     <key>NSHumanReadableCopyright</key>  <string>FloatingLyric</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>       <string>com.floatinglyric.app</string>
+            <key>CFBundleTypeRole</key>      <string>Viewer</string>
+            <key>CFBundleURLSchemes</key>
+            <array><string>floatinglyric</string></array>
+        </dict>
+    </array>
 </dict>
 </plist>

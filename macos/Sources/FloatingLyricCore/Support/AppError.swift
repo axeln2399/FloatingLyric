@@ -9,6 +9,8 @@ public enum AppError: Error, Equatable {
     case badResponse(status: Int)
     case portUnavailable
     case authCancelled
+    case authUnavailable
+    case authStateMismatch
     case premiumRequired
     case noActiveDevice
     case controlScopeMissing
@@ -23,6 +25,9 @@ public enum AppError: Error, Equatable {
         case .badResponse:     return "Spotify returned an unexpected response"
         case .portUnavailable: return "Port 8888–8890 in use. Free one and retry."
         case .authCancelled:   return "Login cancelled"
+        case .authUnavailable: return "Could not open the Spotify login window"
+        case .authStateMismatch:
+            return "Login response did not match this request — try again"
         case .premiumRequired: return "Spotify Premium required to control playback"
         case .noActiveDevice:  return "No active Spotify device"
         case .controlScopeMissing:
