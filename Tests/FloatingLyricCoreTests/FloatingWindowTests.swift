@@ -132,6 +132,32 @@ final class FloatingWindowTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(window.frame.height, FloatingWindow.minimumSize.height)
     }
 
+    func test_idleHidesThePanelItself_notJustItsContents() {
+        let window = makeWindow()
+        XCTAssertTrue(window.isBackgroundVisible)
+        XCTAssertTrue(window.hasShadow)
+
+        window.setChrome(visible: false, isHovering: false)
+        XCTAssertFalse(window.isBackgroundVisible, "only the lyrics should be left")
+        XCTAssertFalse(window.hasShadow, "a shadow with no panel would frame thin air")
+
+        window.setChrome(visible: true, isHovering: true)
+        XCTAssertTrue(window.isBackgroundVisible)
+        XCTAssertTrue(window.hasShadow)
+    }
+
+    func test_theLyricsAreNotInsideTheFadingPanel() {
+        let window = makeWindow()
+        // Nesting them would take the words down with the blur; they have to
+        // be siblings for one to outlive the other.
+        let children = window.contentView?.subviews ?? []
+        XCTAssertEqual(children.count, 2)
+        XCTAssertTrue(children.contains { $0 is NSVisualEffectView })
+        XCTAssertFalse(children.compactMap { $0 as? NSVisualEffectView }
+                               .contains { !$0.subviews.isEmpty },
+                       "the blur must not be the lyrics' parent")
+    }
+
     override func tearDown() {
         Defaults.panelFrame = nil
         Defaults.clickThrough = false

@@ -12,6 +12,10 @@ import SwiftUI
 public final class FloatingWindow: NSWindow, NSWindowDelegate {
     public static let minimumSize = NSSize(width: 280, height: 150)
 
+    /// The blurred panel behind the lyrics. Faded out with the rest of the
+    /// chrome, which is what leaves bare words floating over the desktop.
+    private let background = NSVisualEffectView()
+
     public init(viewModel: LyricViewModel) {
         super.init(contentRect: NSRect(x: 0, y: 0, width: 420, height: 210),
                    styleMask: [.titled, .closable, .miniaturizable, .resizable,
@@ -44,22 +48,30 @@ public final class FloatingWindow: NSWindow, NSWindowDelegate {
         isReleasedWhenClosed = false
         delegate = self
 
-        let blur = NSVisualEffectView()
-        blur.material = .hudWindow
-        blur.blendingMode = .behindWindow
-        blur.state = .active
+        background.material = .hudWindow
+        background.blendingMode = .behindWindow
+        background.state = .active
+        background.translatesAutoresizingMaskIntoConstraints = false
 
         let hosting = NSHostingView(rootView: LyricView(model: viewModel))
         hosting.translatesAutoresizingMaskIntoConstraints = false
-        blur.addSubview(hosting)
-        NSLayoutConstraint.activate([
-            hosting.leadingAnchor.constraint(equalTo: blur.leadingAnchor),
-            hosting.trailingAnchor.constraint(equalTo: blur.trailingAnchor),
-            hosting.topAnchor.constraint(equalTo: blur.topAnchor),
-            hosting.bottomAnchor.constraint(equalTo: blur.bottomAnchor),
-        ])
 
-        contentView = blur
+        // The blur is a *sibling* behind the lyrics rather than their parent,
+        // so it can be faded out on its own. Nested, its alpha would take the
+        // lyrics down with it — and the lyrics are the one thing that stays.
+        let container = NSView()
+        container.addSubview(background)
+        container.addSubview(hosting)
+        for view in [background, hosting] {
+            NSLayoutConstraint.activate([
+                view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                view.topAnchor.constraint(equalTo: container.topAnchor),
+                view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            ])
+        }
+
+        contentView = container
         restoreFrame()
         applyPreferences()
     }
@@ -69,6 +81,10 @@ public final class FloatingWindow: NSWindow, NSWindowDelegate {
     /// in here by the coordinator.
     private var chromeVisible = true
     private var isHovering = false
+
+    /// Whether the blurred panel is currently drawn. Exposed for tests, which
+    /// cannot read through the fade animation.
+    public private(set) var isBackgroundVisible = true
 
     /// Whether the pointer is over the window right now.
     ///
@@ -103,6 +119,24 @@ public final class FloatingWindow: NSWindow, NSWindowDelegate {
         // much as the header is, so they also go with the rest of the chrome.
         for button in [NSWindow.ButtonType.closeButton, .miniaturizeButton] {
             standardWindowButton(button)?.isHidden = Defaults.clickThrough || !chromeVisible
+        }
+
+        setBackgroundVisible(chromeVisible)
+    }
+
+    /// The panel itself is furniture: once it goes, nothing is left on screen
+    /// but the words. The shadow goes with it — a shadow with no panel to cast
+    /// it draws a rectangle around thin air.
+    private func setBackgroundVisible(_ visible: Bool) {
+        guard isBackgroundVisible != visible else { return }
+        isBackgroundVisible = visible
+
+        hasShadow = visible
+        invalidateShadow()
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.25
+            background.animator().alphaValue = visible ? 1 : 0
         }
     }
 

@@ -110,10 +110,18 @@ close that tab.
 
 That's it. Play something on Spotify — on any device — and lyrics appear.
 
-### Re-running setup later
+### Logging in and out
 
-Menu bar **♪ → Spotify Setup…** to change the Client ID, or **Log Out** to
-disconnect the account.
+The login window opens by itself whenever there is no session to work with —
+the first time you run the app, and again after **Log Out**. It has two faces:
+
+- **First run:** the full walkthrough above, ending in the Client ID field.
+- **Logged out:** just a **Log In with Spotify** button. Your Client ID is
+  already saved and doesn't change, so there is nothing to re-enter — though
+  **Use a different Client ID…** is there if you want to point the app at
+  another Spotify app.
+
+Menu bar **♪ → Spotify Setup…** opens the same window at any time.
 
 ### What the app can and cannot do with your account
 
@@ -265,8 +273,10 @@ names and unusual readings will sometimes come out wrong.
 ### Auto-hiding controls
 
 After **3 seconds** with no pointer over the window, everything but the lyrics
-fades out: the track header, the progress bar, the transport buttons and the
-traffic lights. What is left is just the words, floating over your work.
+fades out: the track header, the progress bar, the transport buttons, the
+traffic lights **and the blurred panel itself**. No frame, no shadow, no
+background — what is left is bare words floating over whatever you're working
+on. They carry a soft shadow so they stay readable over a light wallpaper.
 
 Move the pointer onto the window and it all comes back, staying up for as long
 as you hover. Nothing moves as it fades — the layout holds its place, so the

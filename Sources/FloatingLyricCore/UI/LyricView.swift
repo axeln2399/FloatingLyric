@@ -12,6 +12,10 @@ public struct LyricView: View {
             header
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                // Once the panel fades the words sit straight on the desktop,
+                // which could be anything. A soft shadow keeps them legible
+                // against a light wallpaper without looking heavy on the blur.
+                .shadow(color: .black.opacity(0.55), radius: 3, x: 0, y: 1)
             footer
         }
         // Extra headroom so the traffic-light buttons never sit on the text.

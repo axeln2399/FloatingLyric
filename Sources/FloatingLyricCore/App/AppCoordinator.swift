@@ -46,7 +46,7 @@ public final class AppCoordinator {
 
         guard let clientID = Defaults.clientID else {
             viewModel.apply(state: .failed(.notConfigured))
-            showSetup()
+            showSetup(.firstRun)
             return
         }
 
@@ -54,7 +54,10 @@ public final class AppCoordinator {
         self.auth = auth
 
         guard auth.isLoggedIn else {
+            // Nothing can be shown without a session, so ask for one rather
+            // than leaving a dead panel on screen.
             viewModel.apply(state: .failed(.notLoggedIn))
+            showSetup(.logIn)
             return
         }
 
@@ -76,7 +79,7 @@ public final class AppCoordinator {
 
     public func logIn() {
         guard let auth else {
-            showSetup()
+            showSetup(.firstRun)
             return
         }
         Task { @MainActor in
@@ -120,10 +123,27 @@ public final class AppCoordinator {
         auth?.logOut()
         currentTrackID = nil
         viewModel.apply(state: .failed(.notLoggedIn))
+        // Logging out is nearly always a prelude to logging back in — as a
+        // different account, or to pick up a new permission.
+        showSetup(.logIn)
     }
 
-    public func showSetup() {
-        let window = SetupWindow { [weak self] clientID in
+    /// Shows the login window. Without an argument it works out which face to
+    /// show from what is actually stored.
+    public func showSetup(_ prompt: LoginPrompt? = nil) {
+        let prompt = prompt ?? LoginPrompt.required(clientID: Defaults.clientID,
+                                                    isLoggedIn: auth?.isLoggedIn ?? false)
+                             ?? .firstRun
+
+        // Re-showing while it is already up would stack a second window
+        // behind the first.
+        if let existing = setupWindow, existing.prompt == prompt,
+           existing.window?.isVisible == true {
+            existing.present()
+            return
+        }
+
+        let window = SetupWindow(prompt: prompt) { [weak self] clientID in
             self?.reconfigure(clientID: clientID)
         }
         setupWindow = window
