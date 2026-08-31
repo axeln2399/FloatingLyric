@@ -25,9 +25,10 @@ decisions are still open.
 - **Learning how the code works:** [`docs/architecture.md`](docs/architecture.md) —
   diagrams of the startup path, the two clocks, the login flow and the lyrics
   pipeline
-- **Writing one of the other platforms:** [`docs/porting.md`](docs/porting.md) —
-  the behaviour every version has to match, written so it can be implemented in
-  any language, plus what each platform can and can't do.
+- **Writing one of the other platforms:** two files —
+  [`docs/porting.md`](docs/porting.md) for the behaviour every version has to
+  match, and [`docs/building-a-port.md`](docs/building-a-port.md) for how to
+  actually build it: toolchains, the order to write things in, and shipping.
 - **Signing and notarizing (macOS):**
   [`macos/docs/apple-developer-id.md`](macos/docs/apple-developer-id.md)
 

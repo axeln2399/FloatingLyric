@@ -5,6 +5,10 @@
 The behaviour to implement is in [`../docs/porting.md`](../docs/porting.md).
 This file only covers what is specific to Android.
 
+> **How to actually build it:**
+> [`../docs/building-a-port.md`](../docs/building-a-port.md) — toolchain setup,
+> the milestone order, and packaging.
+
 ## Why this is the closest match to the macOS app
 
 Android is the one other platform where the *actual product* — lyrics floating

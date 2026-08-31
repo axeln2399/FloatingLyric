@@ -5,6 +5,10 @@
 Read this before starting. The core idea of FloatingLyric does not survive the
 trip to iOS, and it is better to know that now than after a weekend.
 
+> **How to actually build it:**
+> [`../docs/building-a-port.md`](../docs/building-a-port.md) — toolchain setup,
+> the milestone order, and packaging.
+
 ## The overlay is impossible
 
 iOS has **no API for drawing over other apps.** An app's UI is confined to its

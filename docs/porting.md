@@ -298,6 +298,11 @@ a build system on every change.
 
 ## Adding a platform to this repo
 
+The step-by-step — what to install, what to write first, how to package it —
+is in [`building-a-port.md`](building-a-port.md). The rules below are about
+this repo rather than about code.
+
+
 1. Create the directory with its own project and build, at the top level.
 2. Its README states the stack, how to build it, and where it knowingly differs
    from this specification.

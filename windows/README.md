@@ -6,6 +6,10 @@ The behaviour to implement is in [`../docs/porting.md`](../docs/porting.md) —
 auth, polling, the playhead clock, LRCLIB, parsing, control, and the window
 rules. This file only covers what is specific to Windows.
 
+> **How to actually build it:**
+> [`../docs/building-a-port.md`](../docs/building-a-port.md) — toolchain setup,
+> the milestone order, and packaging.
+
 ## Why this one is straightforward
 
 An always-on-top overlay is a normal thing to build on Windows. Everything the
