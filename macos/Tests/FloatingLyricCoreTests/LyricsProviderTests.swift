@@ -17,6 +17,7 @@ final class LyricsProviderTests: XCTestCase {
         func write(_ result: LyricsResult, trackID: String, now: Date) {
             stored[trackID] = (result, now)
         }
+        func remove(trackID: String) { stored[trackID] = nil }
     }
 
     private func makeProvider(_ responses: [HTTPResponse],
@@ -44,6 +45,106 @@ final class LyricsProviderTests: XCTestCase {
         XCTAssertEqual(value("track_name"), "Blinding Lights")
         XCTAssertEqual(value("album_name"), "After Hours")
         XCTAssertEqual(value("duration"), "200", "duration must be whole seconds")
+    }
+
+    // MARK: - Choosing among search results
+
+    private func record(duration: Double?, synced: Bool = true,
+                        artist: String = "The Weeknd",
+                        title: String = "Blinding Lights") -> LyricsProvider.Record {
+        LyricsProvider.Record(
+            duration: duration,
+            syncedLyrics: synced ? "[00:10.00]Line" : nil,
+            plainLyrics: "Line",
+            artistName: artist,
+            trackName: title)
+    }
+
+    /// track is 200.04 s.
+    func test_anExactDurationMatchWins() {
+        let best = LyricsProvider.bestMatch(for: track, in: [
+            record(duration: 186), record(duration: 201), record(duration: 260),
+        ])
+        XCTAssertEqual(best?.duration, 201)
+    }
+
+    func test_fallsBackToALooserDurationRatherThanGivingUp() {
+        // Nothing within 5 s; 188 is within 15 s. The old code returned nothing
+        // here, which is the bug this covers.
+        let best = LyricsProvider.bestMatch(for: track, in: [
+            record(duration: 188), record(duration: 260),
+        ])
+        XCTAssertEqual(best?.duration, 188)
+    }
+
+    func test_takesTheSameSongAtAnyLengthWhenNothingElseIsClose() {
+        let best = LyricsProvider.bestMatch(for: track, in: [
+            record(duration: 254), record(duration: 300),
+        ])
+        XCTAssertEqual(best?.duration, 254, "closest of the same song")
+    }
+
+    func test_recordsWithNoDurationAreStillUsable() {
+        let best = LyricsProvider.bestMatch(for: track, in: [record(duration: nil)])
+        XCTAssertNotNil(best, "a missing duration is not a reason to show nothing")
+    }
+
+    /// The widest tier is name-matched, so a search that drags in another
+    /// artist's song never wins by accident.
+    func test_aDifferentSongIsNeverAcceptedAtTheWidestTier() {
+        let best = LyricsProvider.bestMatch(for: track, in: [
+            record(duration: 400, artist: "Someone Else", title: "Other Song"),
+            record(duration: nil, artist: "Someone Else", title: "Other Song"),
+        ])
+        XCTAssertNil(best)
+    }
+
+    func test_syncedBeatsPlainWithinTheSameTier() {
+        let best = LyricsProvider.bestMatch(for: track, in: [
+            record(duration: 200, synced: false),
+            record(duration: 203, synced: true),
+        ])
+        XCTAssertEqual(best?.duration, 203)
+    }
+
+    func test_namesAreComparedIgnoringCaseAndAccents() {
+        let best = LyricsProvider.bestMatch(for: track, in: [
+            record(duration: 400, artist: "the wéeknd", title: "BLINDING LIGHTS"),
+        ])
+        XCTAssertNotNil(best)
+    }
+
+    func test_emptyRecordsAreIgnored() {
+        let empty = LyricsProvider.Record(duration: 200, syncedLyrics: nil,
+                                          plainLyrics: nil, artistName: "The Weeknd",
+                                          trackName: "Blinding Lights")
+        XCTAssertNil(LyricsProvider.bestMatch(for: track, in: [empty]))
+    }
+
+    /// End to end through the HTTP path: /api/get misses, and search returns
+    /// only entries the old ±5 s rule would have thrown away.
+    func test_searchRescuesATrackWhoseDurationsAllDisagree() async {
+        let miss = HTTPResponse(status: 404, body: Data(), headers: [:])
+        let results = #"""
+        [{"duration":186.0,"syncedLyrics":"[00:12.00]Found","plainLyrics":"Found",
+          "artistName":"The Weeknd","trackName":"Blinding Lights"},
+         {"duration":260.0,"syncedLyrics":"[00:12.00]Other","plainLyrics":"Other",
+          "artistName":"The Weeknd","trackName":"Blinding Lights"}]
+        """#
+        let (provider, _, _) = makeProvider([miss, .json(results)])
+
+        let result = await provider.lyrics(for: track)
+
+        XCTAssertEqual(result, .synced([LyricLine(timeMs: 12_000, text: "Found")]))
+    }
+
+    func test_refetchingDropsWhatWasCached() async {
+        let cache = MemoryCache()
+        cache.write(.notFound, trackID: track.id, now: Date(timeIntervalSince1970: 0))
+        XCTAssertNotNil(cache.read(trackID: track.id, now: Date(timeIntervalSince1970: 0)))
+
+        cache.remove(trackID: track.id)
+        XCTAssertNil(cache.read(trackID: track.id, now: Date(timeIntervalSince1970: 0)))
     }
 
     func test_sendsRequiredUserAgent() async {

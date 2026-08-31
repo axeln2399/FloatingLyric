@@ -3,6 +3,10 @@ import Foundation
 public protocol LyricsCaching: AnyObject, Sendable {
     func read(trackID: String, now: Date) -> LyricsResult?
     func write(_ result: LyricsResult, trackID: String, now: Date)
+    /// Forgets one track, so the next lookup goes back to the network. Used by
+    /// "Refetch Lyrics": without it a wrong or missing result stands for 24
+    /// hours.
+    func remove(trackID: String)
 }
 
 public final class LyricsCache: LyricsCaching, @unchecked Sendable {
@@ -45,6 +49,10 @@ public final class LyricsCache: LyricsCaching, @unchecked Sendable {
             else { return nil }
             return .notFound
         }
+    }
+
+    public func remove(trackID: String) {
+        try? FileManager.default.removeItem(at: url(for: trackID))
     }
 
     public func write(_ result: LyricsResult, trackID: String, now: Date) {

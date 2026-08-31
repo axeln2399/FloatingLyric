@@ -17,7 +17,7 @@ public final class AppCoordinator {
     private var window: FloatingWindow?
     private var setupWindow: SetupWindow?
     private var tickTimer: Timer?
-    private var currentTrackID: String?
+    private var currentTrack: TrackIdentity?
     private var lyricsTask: Task<Void, Never>?
 
     /// Built lazily: the sheet needs a window to hang from, and there is none
@@ -167,7 +167,7 @@ public final class AppCoordinator {
         playback = nil
         viewModel.canControl = false
         auth?.logOut()
-        currentTrackID = nil
+        currentTrack = nil
         viewModel.apply(state: .failed(.notLoggedIn))
         // Logging out is nearly always a prelude to logging back in — as a
         // different account, or to pick up a new permission.
@@ -223,6 +223,18 @@ public final class AppCoordinator {
         viewModel.noteActivity()
     }
 
+    /// Throws away what is cached for the current track and asks LRCLIB again.
+    /// The cache is deliberately long-lived, so this is the only way past a
+    /// stale miss without waiting a day.
+    public func refetchLyrics() {
+        guard let track = currentTrack else { return }
+        cache.remove(trackID: track.id)
+        viewModel.apply(lyrics: .notFound)
+        fetchLyrics(for: track)
+    }
+
+    public var hasCurrentTrack: Bool { currentTrack != nil }
+
     // MARK: - Playback control
 
     private enum Skip { case next, previous }
@@ -267,7 +279,7 @@ public final class AppCoordinator {
         viewModel.apply(state: state)
 
         guard let np = state.nowPlaying else {
-            if case .idle = state { currentTrackID = nil }
+            if case .idle = state { currentTrack = nil }
             return
         }
 
@@ -275,8 +287,8 @@ public final class AppCoordinator {
         let now = Date().timeIntervalSinceReferenceDate
         clock.anchor(progressMs: np.progressMs, isPlaying: np.isPlaying, now: now)
 
-        guard np.track.id != currentTrackID else { return }
-        currentTrackID = np.track.id
+        guard np.track.id != currentTrack?.id else { return }
+        currentTrack = np.track
         fetchLyrics(for: np.track)
     }
 
@@ -285,7 +297,7 @@ public final class AppCoordinator {
         guard let provider = lyricsProvider else { return }
         lyricsTask = Task { @MainActor [weak self] in
             let result = await provider.lyrics(for: track)
-            guard !Task.isCancelled, self?.currentTrackID == track.id else { return }
+            guard !Task.isCancelled, self?.currentTrack?.id == track.id else { return }
             self?.viewModel.apply(lyrics: result)
         }
     }

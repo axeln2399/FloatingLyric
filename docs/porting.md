@@ -129,9 +129,21 @@ Free, no key, no account. Send a real `User-Agent` identifying your app.
 
 1. `GET https://lrclib.net/api/get?artist_name=&track_name=&album_name=&duration=`
    — duration in **seconds**. Take it if it returns 2xx and parses.
-2. Otherwise `GET https://lrclib.net/api/search?artist_name=&track_name=` and
-   take the first result whose duration is within **±5 s** of the track.
+2. Otherwise `GET https://lrclib.net/api/search?artist_name=&track_name=`, and
+   pick from the results in tiers: within **±5 s** of the track, then within
+   **±15 s**, then any record whose artist *and* title match exactly, at any
+   length. Within a tier prefer synced lyrics, then the closest duration.
 3. Otherwise: not found.
+
+The tiers matter more than they look. Remasters, single edits and regional
+releases of one song differ by tens of seconds and LRCLIB holds several of
+each, so a strict duration rule discards every one of them and shows the user
+nothing — when being seconds out is something the sync offset already fixes.
+Insist on matching names in the widest tier, though, or a search will
+eventually hand you a different song.
+
+Give the user a **refetch** command that drops the cached entry for the current
+track. Without one, a stale miss stands for the full 24 hours.
 
 Prefer `syncedLyrics`; fall back to `plainLyrics`; then not found.
 

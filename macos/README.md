@@ -248,6 +248,7 @@ Menu bar icon (**♪**):
 | **Close Window** (⌘W) | Close it — the app keeps running |
 | **Lock Position** | Stop accidental dragging |
 | **Click Through** | Window becomes purely visual; clicks pass through to whatever is behind it |
+| **Refetch Lyrics** (⌘R) | Throw away what's cached for this track and ask again |
 | **Play / Pause** (⌘P) | Play or pause Spotify |
 | **Next Track** (⌘]) | Skip forward |
 | **Previous Track** (⌘[) | Skip back |
@@ -300,6 +301,33 @@ Two things Spotify requires for these:
 If you connected your account before playback control existed, your saved login
 predates the permission it needs. The panel says *"Log out and back in to enable
 playback controls"* — do exactly that (♪ → Log Out, then log back in).
+
+### When a song has lyrics in Spotify but not here
+
+Spotify's lyrics come from **Musixmatch**, under a licence, and they are not
+exposed through Spotify's public API — there is no lyrics endpoint at all. So
+FloatingLyric cannot read what Spotify shows you. It uses
+**[LRCLIB](https://lrclib.net)** instead: free, no account, and a genuinely
+different (smaller) database. Obscure tracks, very new releases and local files
+are often simply not in it.
+
+Before blaming coverage, though, try **♪ → Refetch Lyrics** (⌘R). Results are
+cached hard — a *found* result forever, a *not found* for 24 hours — so a
+one-off failure otherwise stands for a day. Refetching drops the cached answer
+for the current track and asks again.
+
+How a track is matched, in order:
+
+1. Exact lookup by artist, title, album and duration.
+2. Failing that, a search by artist and title, preferring a version within
+   **5 seconds** of your track's length, then within **15 seconds**.
+3. Failing that, any entry whose artist and title match exactly — whatever its
+   length.
+
+Step 3 exists because remasters, single edits and regional releases of the same
+song routinely differ by half a minute, and LRCLIB stores several of each. A
+version that is seconds out is worth having: **Sync offset** in the menu bar
+fixes it. Nothing at all is not.
 
 ### Romaji under non-Latin lyrics
 
@@ -515,6 +543,8 @@ No third-party dependencies — Apple frameworks only.
 | No traffic light buttons visible | **Click Through** is on — turn it off in the menu bar |
 | Highlight runs early or late | Adjust **Sync offset** in the menu bar |
 | "Session expired" | ♪ → **Log Out**, then log in again |
+| Spotify shows lyrics but FloatingLyric doesn't | Different database entirely — try ♪ → **Refetch Lyrics** (⌘R) first, then see the section above |
+| Lyrics are found but drift steadily | A different master was matched — adjust **Sync offset**, or ⌘R to try another version |
 | Keychain asks about `com.floatinglyric.tokens` after every rebuild | Ad-hoc builds have no stable identity — run `./make-signing-cert.sh` once (see above) |
 | `no such module 'XCTest'` when building | `export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`, or permanently: `sudo xcode-select -s /Applications/Xcode.app` |
 

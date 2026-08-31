@@ -18,6 +18,7 @@ public final class MenuBarController: NSObject, NSMenuDelegate {
     private var offsetLabelField: NSTextField?
     private var transportItems: [NSMenuItem] = []
     private var playPauseItem: NSMenuItem?
+    private var refetchItem: NSMenuItem?
 
     public init(coordinator: AppCoordinator) {
         self.coordinator = coordinator
@@ -39,6 +40,11 @@ public final class MenuBarController: NSObject, NSMenuDelegate {
         menu.addItem(item("Close Window", #selector(closeLyrics), key: "w"))
         menu.addItem(check("Lock Position", #selector(toggleLock), on: Defaults.lockPosition))
         menu.addItem(check("Click Through", #selector(toggleClickThrough), on: Defaults.clickThrough))
+        menu.addItem(.separator())
+
+        let refetch = item("Refetch Lyrics", #selector(refetchLyrics), key: "r")
+        refetchItem = refetch
+        menu.addItem(refetch)
         menu.addItem(.separator())
 
         let playPause = item("Play / Pause", #selector(playPause), key: "p")
@@ -136,6 +142,7 @@ public final class MenuBarController: NSObject, NSMenuDelegate {
 
         let canControl = coordinator.viewModel.canControl
         transportItems.forEach { $0.isEnabled = canControl }
+        refetchItem?.isEnabled = coordinator.hasCurrentTrack
         playPauseItem?.title = coordinator.viewModel.isPlaying ? "Pause" : "Play"
     }
 
@@ -146,6 +153,7 @@ public final class MenuBarController: NSObject, NSMenuDelegate {
     @objc private func closeLyrics() { coordinator.closePanel() }
 
     @objc private func playPause() { coordinator.playPause() }
+    @objc private func refetchLyrics() { coordinator.refetchLyrics() }
     @objc private func nextTrack() { coordinator.nextTrack() }
     @objc private func previousTrack() { coordinator.previousTrack() }
 
