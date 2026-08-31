@@ -22,6 +22,9 @@ decisions are still open.
 ## Start here
 
 - **Using or building the macOS app:** [`macos/README.md`](macos/README.md)
+- **Learning how the code works:** [`docs/architecture.md`](docs/architecture.md) —
+  diagrams of the startup path, the two clocks, the login flow and the lyrics
+  pipeline
 - **Writing one of the other platforms:** [`docs/porting.md`](docs/porting.md) —
   the behaviour every version has to match, written so it can be implemented in
   any language, plus what each platform can and can't do.

@@ -521,6 +521,7 @@ No third-party dependencies — Apple frameworks only.
 ## Docs
 
 - **Getting an Apple Developer account: [`docs/apple-developer-id.md`](docs/apple-developer-id.md)** — the full runbook for signing and notarizing, for the day you have one
+- How the code works, with diagrams: [`../docs/architecture.md`](../docs/architecture.md)
 - Porting to other platforms: [`../docs/porting.md`](../docs/porting.md)
 - Design: `../docs/superpowers/specs/2026-08-30-floatinglyric-design.md`
 - Implementation plan: `../docs/superpowers/plans/2026-08-30-floatinglyric.md`
