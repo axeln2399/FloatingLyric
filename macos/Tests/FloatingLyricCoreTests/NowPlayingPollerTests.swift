@@ -71,6 +71,22 @@ final class NowPlayingPollerTests: XCTestCase {
         XCTAssertEqual(state, .failed(.rateLimited(retryAfter: 7)))
     }
 
+    /// Spotify's real 429 carries no body, which is exactly the case that
+    /// used to be misread as "nothing playing".
+    func test_rateLimitWithAnEmptyBodyIsStillARateLimit() async {
+        let (poller, _) = makePoller([
+            HTTPResponse(status: 429, body: Data(), headers: ["Retry-After": "7"])
+        ])
+        let state = await poller.pollOnce()
+        XCTAssertEqual(state, .failed(.rateLimited(retryAfter: 7)))
+    }
+
+    func test_aServerErrorWithNoBodyIsNotMistakenForSilence() async {
+        let (poller, _) = makePoller([HTTPResponse(status: 502, body: Data(), headers: [:])])
+        let state = await poller.pollOnce()
+        XCTAssertEqual(state, .failed(.badResponse(status: 502)))
+    }
+
     func test_unauthorizedRefreshesThenRetriesAndSucceeds() async {
         let (poller, http) = makePoller(
             [HTTPResponse(status: 401, body: Data("{}".utf8), headers: [:]),

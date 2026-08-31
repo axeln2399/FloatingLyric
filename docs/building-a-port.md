@@ -25,18 +25,25 @@ Checked on this Mac:
 So **Android is the port you can start this afternoon** with nothing new to
 install.
 
-**Windows is the awkward one, and it's worth knowing why up front: you cannot
-build a Windows app from a Mac.** WinUI, .NET, Flutter-for-Windows and
-`jpackage` all need to *run on Windows* to produce a Windows binary. Three ways
-round it, in order of how little they cost:
+**Windows can be built from a Mac — with the right stack.** An earlier version
+of this file said otherwise, and that was wrong in an important way. WinUI, WPF,
+Flutter-for-Windows and `jpackage` do all need to *run on Windows*. **.NET does
+not:** `dotnet publish -r win-x64` on macOS emits a genuine PE32+ x86-64
+executable. That is exactly why [`../windows/`](../windows/) is C# and Avalonia
+— the whole port was written, built and published from this Mac.
+
+If you pick a stack that cannot cross-compile, three ways round it:
 
 1. **GitHub Actions** with a `windows-latest` runner — free for public repos,
-   and this repo is already on GitHub. A workflow is at the end of the Windows
-   section.
-2. A Windows PC, or Windows in a VM (Parallels / UTM on Apple silicon runs
-   Windows on ARM; fine for development).
-3. Compose Desktop, which *runs* on any JVM — you can develop and test on the
-   Mac, and only need Windows for the final installer.
+   and already wired up at
+   [`../.github/workflows/windows.yml`](../.github/workflows/windows.yml).
+2. A Windows PC, or Windows in a VM.
+3. Compose Desktop, which runs on any JVM — develop on the Mac, and only need
+   Windows for the final installer.
+
+Building is not the same as *verifying*, though. Nothing on a Mac tells you
+whether an always-on-top window behaves, whether P/Invoke works, or whether the
+tray icon renders. Plan on someone running it there.
 
 ---
 

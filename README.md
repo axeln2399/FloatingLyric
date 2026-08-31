@@ -11,13 +11,14 @@ you're playing on this machine, your phone, or a speaker.
 | Platform | Status | Where |
 |---|---|---|
 | **macOS 14+** | **Shipping** — the real app | [`macos/`](macos/) |
-| Windows | Not started | [`windows/`](windows/) |
+| **Windows 10+** | **Complete, unverified on Windows** — builds a real `.exe`, never run there | [`windows/`](windows/) |
 | Android | Not started | [`android/`](android/) |
 | iOS | Not started, and not the same app — see below | [`ios/`](ios/) |
 
-Only the macOS app exists today. The other three directories hold the plan for
-that platform and nothing else; each README says what it would take and which
-decisions are still open.
+macOS is the reference implementation. Windows is a full C#/Avalonia port that
+builds and tests cleanly but has only ever been *run* on a Mac — its README is
+explicit about what that leaves unverified. Android and iOS hold plans and no
+code; each README says what it would take and which decisions are still open.
 
 ## Start here
 
@@ -35,11 +36,11 @@ decisions are still open.
 ## How this repo is laid out
 
 ```
-macos/      Swift package: the app, its tests, build.sh   ← run commands here
-windows/    plan only
+macos/      Swift package: the app, its tests, build.sh
+windows/    C# / Avalonia: FloatingLyric.exe, 127 tests
 android/    plan only
 ios/        plan only
-docs/       cross-platform: the porting guide, design notes
+docs/       cross-platform: architecture, porting guide, build guide
 ```
 
 Each platform directory is self-contained: its own project, build and tests,

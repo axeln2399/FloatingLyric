@@ -68,7 +68,9 @@ public final class NowPlayingPoller: @unchecked Sendable {
     }
 
     private func decode(_ response: HTTPResponse) -> PlaybackState {
-        if response.status == 204 || response.body.isEmpty { return .idle }
+        // Status first, body second. Spotify sends 429 with an empty body, so
+        // checking emptiness first read rate limiting as "nothing playing" —
+        // which threw away Retry-After and kept polling into the limit.
         if response.status == 429 {
             let retryAfter = TimeInterval(response.headers["Retry-After"] ?? "") ?? 5
             return .failed(.rateLimited(retryAfter: retryAfter))
@@ -76,6 +78,7 @@ public final class NowPlayingPoller: @unchecked Sendable {
         guard (200..<300).contains(response.status) else {
             return .failed(.badResponse(status: response.status))
         }
+        if response.status == 204 || response.body.isEmpty { return .idle }
         guard let payload = try? JSONDecoder().decode(CurrentlyPlaying.self, from: response.body),
               let item = payload.item,
               let id = item.id, let name = item.name, let duration = item.duration_ms,

@@ -1,0 +1,43 @@
+name: Windows build
+
+on:
+  push:
+    branches: [main]
+    paths: ["windows/**", ".github/workflows/windows.yml"]
+  pull_request:
+    paths: ["windows/**"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Test
+        run: dotnet test --configuration Release
+
+      # Self-contained: the .exe carries its own .NET runtime, so nobody has
+      # to install anything to run it.
+      - name: Publish
+        run: >
+          dotnet publish src/FloatingLyric.App/FloatingLyric.App.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          --output dist/win-x64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FloatingLyric-windows-x64
+          path: windows/dist/win-x64/FloatingLyric.exe
+          if-no-files-found: error
