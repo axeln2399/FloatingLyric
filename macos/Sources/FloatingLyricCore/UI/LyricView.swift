@@ -77,26 +77,25 @@ public struct LyricView: View {
 
     private func syncedLines(document: LyricsDocument, currentIndex: Int?) -> some View {
         let center = currentIndex ?? -1
-        let window = Array((center - 1)...(center + 2))
-        // Lines wrap rather than truncate, so four of them can outgrow a short
-        // window. Scrolling keeps the overflow reachable, and the current line
-        // is scrolled back into view whenever it changes.
+        // Every line is laid out, so a taller window simply shows more of the
+        // song instead of the four lines a fixed slice used to allow. The
+        // current line is kept centred, which leaves a short window looking
+        // the way it always did.
         return ScrollViewReader { proxy in
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 6) {
-                    ForEach(window, id: \.self) { index in
-                        if document.lines.indices.contains(index) {
-                            line(document: document, index: index, isCurrent: index == center)
-                                .id(index)
-                        }
+                    ForEach(document.lines.indices, id: \.self) { index in
+                        line(document: document, index: index, isCurrent: index == center)
+                            .id(index)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .scrollIndicators(.hidden)
+            .onAppear { proxy.scrollTo(max(center, 0), anchor: .center) }
             .onChange(of: currentIndex) { _, _ in
                 withAnimation(.easeInOut(duration: 0.25)) {
-                    proxy.scrollTo(center, anchor: .center)
+                    proxy.scrollTo(max(center, 0), anchor: .center)
                 }
             }
         }
