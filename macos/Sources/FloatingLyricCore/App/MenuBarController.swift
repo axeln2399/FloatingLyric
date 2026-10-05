@@ -75,7 +75,7 @@ public final class MenuBarController: NSObject, NSMenuDelegate {
         menu.addItem(check("Romaji Under Lyrics", #selector(toggleRomaji), on: Defaults.showRomaji))
         menu.addItem(check("Auto-Hide Controls", #selector(toggleAutoHide), on: Defaults.autoHideChrome))
         menu.addItem(.separator())
-        menu.addItem(item("Use My Own Client ID…", #selector(openSetup)))
+        menu.addItem(item("Use a different Client ID…", #selector(openSetup)))
         menu.addItem(item("Log Out", #selector(logOut)))
         menu.addItem(.separator())
         menu.addItem(item("Quit FloatingLyric", #selector(quit), key: "q"))

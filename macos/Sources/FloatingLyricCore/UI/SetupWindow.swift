@@ -7,7 +7,8 @@ public final class SetupWindow: NSWindowController {
 
     public init(prompt: LoginPrompt = .welcome, onSave: @escaping (String) -> Void) {
         self.prompt = prompt
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 400),
+        let size = prompt == .setup ? NSSize(width: 560, height: 480) : NSSize(width: 420, height: 280)
+        let window = NSWindow(contentRect: NSRect(origin: .zero, size: size),
                               styleMask: [.titled, .closable],
                               backing: .buffered, defer: false)
         window.title = prompt == .setup ? "Set up FloatingLyric" : "Log in to Spotify"
@@ -56,58 +57,96 @@ private struct SetupView: View {
         clientID.trimmingCharacters(in: .whitespaces)
     }
 
+    private static let spotifyGreen = Color(red: 0x1D / 255, green: 0xB9 / 255, blue: 0x54 / 255)
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            switch prompt {
-            case .setup:
-                Text("Connect your Spotify account").font(.title2.bold())
-                walkthrough
-            case .welcome:
-                Text("Welcome to FloatingLyric").font(.title2.bold())
-                Text("""
-                     Log in with your Spotify account and lyrics will follow \
-                     whatever you play — on this Mac, your phone, or a speaker. \
-                     Spotify's own login page opens over the app; your password \
-                     never passes through FloatingLyric.
-                     """)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            case .logIn:
-                Text("You're logged out").font(.title2.bold())
-                Text("""
-                     Log in again to start following what you're playing. \
-                     Spotify's login page opens over the app — sign in and \
-                     click Agree.
-                     """)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+        VStack(spacing: 16) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 64, height: 64)
 
-            if isEditingClientID {
-                TextField("Client ID", text: $clientID)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.system(.body, design: .monospaced))
-            } else {
-                Button("Use a different Client ID…") { isEditingClientID = true }
-                    .buttonStyle(.link)
-                    .padding(.leading, -4)
+            VStack(spacing: 6) {
+                title
+                body_
             }
+            .multilineTextAlignment(.center)
 
-            HStack {
-                Link("Open Spotify Dashboard",
-                     destination: URL(string: "https://developer.spotify.com/dashboard")!)
-                Spacer()
-                Button(prompt == .setup ? "Save and Log In" : "Log In with Spotify") {
+            if prompt.isOneClick {
+                Button {
                     onSave(trimmedClientID)
+                } label: {
+                    Label("Log In with Spotify", systemImage: "waveform")
                 }
                 .keyboardShortcut(.defaultAction)
+                .buttonStyle(.borderedProminent)
+                .tint(Self.spotifyGreen)
                 .disabled(trimmedClientID.isEmpty)
+            } else {
+                VStack(alignment: .leading, spacing: 14) {
+                    walkthrough
+
+                    if isEditingClientID {
+                        TextField("Client ID", text: $clientID)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(.body, design: .monospaced))
+                    } else {
+                        Button("Use a different Client ID…") { isEditingClientID = true }
+                            .buttonStyle(.link)
+                            .padding(.leading, -4)
+                    }
+
+                    HStack {
+                        Link("Open Spotify Dashboard",
+                             destination: URL(string: "https://developer.spotify.com/dashboard")!)
+                        Spacer()
+                        Button("Save and Log In") {
+                            onSave(trimmedClientID)
+                        }
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(trimmedClientID.isEmpty)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(20)
-        .frame(width: 520)
+        .padding(24)
+        .frame(width: prompt == .setup ? 560 : 420)
+    }
+
+    @ViewBuilder
+    private var title: some View {
+        switch prompt {
+        case .setup: Text("Connect your Spotify account").font(.title2.bold())
+        case .welcome: Text("Welcome to FloatingLyric").font(.title2.bold())
+        case .logIn: Text("You're logged out").font(.title2.bold())
+        }
+    }
+
+    @ViewBuilder
+    private var body_: some View {
+        switch prompt {
+        case .setup:
+            EmptyView()
+        case .welcome:
+            Text("""
+                 Log in with your Spotify account and lyrics will follow \
+                 whatever you play — on this Mac, your phone, or a speaker. \
+                 Spotify's own login page opens over the app; your password \
+                 never passes through FloatingLyric.
+                 """)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        case .logIn:
+            Text("""
+                 Log in again to start following what you're playing. \
+                 Spotify's login page opens over the app — sign in and \
+                 click Agree.
+                 """)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private var walkthrough: some View {
